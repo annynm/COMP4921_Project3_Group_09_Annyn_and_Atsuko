@@ -1,0 +1,73 @@
+<% 
+// Helper functions
+function getDaysInMonth(year, month) {
+    return new Date(year, month + 1, 0).getDate();
+}
+
+function getFirstDayOfMonth(year, month) {
+    return new Date(year, month, 1).getDay();
+}
+
+function formatDate(year, month, day) {
+    const m = String(month + 1).padStart(2, '0');
+    const d = String(day).padStart(2, '0');
+    return year + '-' + m + '-' + d;
+}
+
+const daysInMonth = getDaysInMonth(year, month);
+const firstDay = getFirstDayOfMonth(year, month);
+const days = Array.from({length: daysInMonth}, function(_, i) { return i + 1; });
+
+const eventsByDate = {};
+if (typeof events !== 'undefined' && events !== null) {
+    events.forEach(function(event) {
+        const date = new Date(event.start_datetime).toISOString().split('T')[0];
+        if (!eventsByDate[date]) eventsByDate[date] = [];
+        eventsByDate[date].push(event);
+    });
+}
+
+const today = new Date().toISOString().split('T')[0];
+%>
+
+<div class="calendar-grid" id="calendarGrid">
+    <!-- Day headers -->
+    <% const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; %>
+    <% dayHeaders.forEach(function(day) { %>
+        <div class="calendar-header"><%= day %></div>
+    <% }); %>
+
+    <!-- Empty cells before first day -->
+    <% for (let i = 0; i < firstDay; i++) { %>
+        <div class="calendar-day empty"></div>
+    <% } %>
+
+    <!-- Days of the month - ALL days rendered -->
+    <% days.forEach(function(day) { %>
+        <%
+        const dateStr = formatDate(year, month, day);
+        const dayEvents = eventsByDate[dateStr] || [];
+        const isToday = dateStr === today;
+        %>
+        <div class="calendar-day <%= isToday ? 'today' : '' %>" 
+             data-date="<%= dateStr %>" 
+             onclick="loadDayView('<%= dateStr %>')">
+            <div class="day-header">
+                <span class="day-number"><%= day %></span>
+                <% if (dayEvents.length > 0) { %>
+                    <span class="event-count"><%= dayEvents.length %></span>
+                <% } %>
+            </div>
+            <div class="day-events">
+                <% dayEvents.slice(0, 4).forEach(function(event) { %>
+                    <div class="mini-event" style="background: <%= event.color || 'var(--greendale-blue-light)' %>;">
+                        <%= event.event_name %>
+                    </div>
+                <% }); %>
+                <% if (dayEvents.length > 4) { %>
+                    <div class="more-events">+<%= dayEvents.length - 4 %> more</div>
+                <% } %>
+            </div>
+        </div>
+    <% }); %>
+</div>

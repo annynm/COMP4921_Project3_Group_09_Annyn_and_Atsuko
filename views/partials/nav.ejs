@@ -1,0 +1,21 @@
+<nav>
+    <div class="nav-container">
+        <div class="logo">
+            <img src="/images/Greendalelogo.webp" alt="Greendale Logo">
+            <span>Greendale</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="/" class="<%= activePage === 'home' ? 'active' : '' %>">Home</a></li>
+            <li><a href="/about" class="<%= activePage === 'about' ? 'active' : '' %>">About</a></li>
+            <% if (user) { %>
+                <li><a href="/events" class="<%= activePage === 'events' ? 'active' : '' %>">Events</a></li>
+                <li><a href="/calendar" class="<%= activePage === 'calendar' ? 'active' : '' %>">Calendar</a></li>
+                <li><a href="/friends" class="<%= activePage === 'friends' ? 'active' : '' %>">Friends</a></li>
+                <li><a href="/logout">Logout</a></li>
+            <% } else { %>
+                <li><a href="/login" class="<%= activePage === 'login' ? 'active' : '' %>">Login</a></li>
+                <li><a href="/register" class="<%= activePage === 'register' ? 'active' : '' %>">Register</a></li>
+            <% } %>
+        </ul>
+    </div>
+</nav>

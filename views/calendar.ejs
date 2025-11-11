@@ -1,0 +1,38 @@
+<%- include('partials/header') %>
+<%- include('partials/nav', { activePage: 'calendar', user: user }) %>
+
+<div class="container">
+    <div class="calendar-container">
+        <div class="calendar-header-controls">
+            <h1 style="color: var(--greendale-blue-dark);">Event Calendar</h1>
+            <div class="calendar-nav">
+                <button id="prevMonth" class="btn btn-secondary">← Prev</button>
+                <h2 id="currentMonth" style="margin: 0; color: var(--greendale-blue);"></h2>
+                <button id="nextMonth" class="btn btn-secondary">Next →</button>
+            </div>
+        </div>
+        
+        <!-- Calendar Grid - Always Rendered -->
+        <%- include('partials/calendar-day-box', { 
+            events: events, 
+            year: query.year, 
+            month: query.month,
+            query: query
+        }) %>
+        
+        <!-- Day View Container - Hidden by default -->
+        <div id="dayViewContainer" class="day-view-container" style="display: none;">
+            <div class="day-view-header">
+                <h3 id="dayViewTitle"></h3>
+                <button id="closeDayView" class="btn btn-secondary">✕ Close</button>
+            </div>
+            <div id="dayViewContent"></div>
+        </div>
+        
+        <!-- Remaining Weeks -->
+        <div id="remainingWeeks" class="remaining-weeks"></div>
+    </div>
+</div>
+
+<script src="/js/calendar.js"></script>
+<%- include('partials/footer') %>

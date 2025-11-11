@@ -1,0 +1,44 @@
+<div class="day-view">
+    <div class="time-grid" id="timeGrid">
+        <% for (let hour = 0; hour < 24; hour++) { %>
+            <%
+            const hourStart = hour * 60;
+            const halfHour = hourStart + 30;
+            const quarter1 = hourStart + 15;
+            const quarter2 = hourStart + 45;
+            %>
+            <div class="hour-slot" data-hour="<%= hour %>">
+                <div class="hour-label"><%= hour %>:00</div>
+                <div class="half-hour" data-time="<%= quarter1 %>"></div>
+                <div class="quarter-hour" data-time="<%= quarter1 %>"></div>
+                <div class="quarter-hour" data-time="<%= quarter2 %>"></div>
+            </div>
+        <% } %>
+    </div>
+    
+    <!-- Event Overlays -->
+    <% if (typeof events !== 'undefined' && events.length > 0) { %>
+        <% events.forEach(function(event) { %>
+            <%
+            const start = new Date(event.start_datetime);
+            const end = new Date(event.end_datetime);
+            const startMinutes = start.getHours() * 60 + start.getMinutes();
+            const duration = (end - start) / (1000 * 60);
+            const top = (startMinutes / 60) * 60;
+            const height = (duration / 60) * 60;
+            %>
+            <div class="event-overlay" 
+                 style="top: <%= top %>px; height: <%= height %>px; background: <%= event.color || 'var(--greendale-blue)' %>;"
+                 onclick="window.location.href='/event/<%= event.event_id %>'">
+                <div class="event-overlay-name"><%= event.event_name %></div>
+                <div class="event-overlay-time">
+                    <%= start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %> - 
+                    <%= end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>
+                </div>
+                <% if (event.room_name) { %>
+                    <div class="event-overlay-room"><%= event.room_name %></div>
+                <% } %>
+            </div>
+        <% }); %>
+    <% } %>
+</div>

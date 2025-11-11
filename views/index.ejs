@@ -1,0 +1,23 @@
+<%- include('partials/header') %>
+<%- include('partials/nav', { activePage: 'home' }) %>
+
+<div class="container">
+    <div class="hero">
+        <h1>Welcome to Greendale Community College</h1>
+        <p class="glass-card" style="max-width: 600px; margin: 0 auto; font-size: 1.2rem;">
+            "Where ambition meets innovation, and every student is already accepted! 
+            Whether you're here for a degree, a fresh start, or just to find yourself, 
+            Greendale is your home for possibility."
+        </p>
+        
+        <img src="/images/greendale.jpg" alt="Greendale Campus" class="hero-image">
+        
+        <% if (!user) { %>
+            <a href="/login" class="cta-button">Enter the Greendale Universe</a>
+        <% } else { %>
+            <a href="/events" class="cta-button">View Your Events</a>
+        <% } %>
+    </div>
+</div>
+
+<%- include('partials/footer') %>

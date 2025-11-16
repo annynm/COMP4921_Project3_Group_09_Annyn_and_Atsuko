@@ -1,78 +1,118 @@
 <%- include('partials/header') %>
-<%- include('partials/nav', { activePage: 'events' }) %>
+    <%- include('partials/nav', { activePage: 'events' }) %>
 
-<div class="container">
-    <h1 style="color: var(--greendale-blue-dark); margin-bottom: 2rem;">My Events Dashboard</h1>
-    
-    <div class="event-actions">
-        <a href="/events/history" class="btn btn-secondary">📚 Event History</a>
-        <a href="/events/book" class="btn btn-primary">📅 Book New Event</a>
-        <a href="/events/manage" class="btn btn-primary">⚙️ Manage Events</a>
-    </div>
-    
-    <div class="events-grid">
-        <div class="event-column">
-            <h2>📬 Upcoming Invites</h2>
-            <% upcomingEvents.forEach(event => { %>
-                <div class="glass-card event-card">
-                    <h3><%= event.event_name %></h3>
-                    <div class="event-meta">
-                        <p><strong>Date:</strong> <%= new Date(event.start_datetime).toLocaleDateString() %></p>
-                        <p><strong>Time:</strong> <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %></p>
-                        <p><strong>Capacity:</strong> <%= event.capacity_display %></p>
-                        <% if (event.room_name) { %>
-                            <p><strong>Room:</strong> <%= event.room_name %></p>
-                        <% } %>
-                    </div>
-                    <span class="event-status status-upcoming">Needs RSVP</span>
-                    <a href="/event/<%= event.event_id %>" style="display: block; margin-top: 0.5rem;">View Details →</a>
-                </div>
-            <% }); %>
-            <% if (upcomingEvents.length === 0) { %>
-                <p style="text-align: center; color: var(--text-secondary);">No pending invites</p>
-            <% } %>
-        </div>
-        
-        <div class="event-column">
-            <h2>✅ Attending</h2>
-            <% attendingEvents.forEach(event => { %>
-                <div class="glass-card event-card">
-                    <h3><%= event.event_name %></h3>
-                    <div class="event-meta">
-                        <p><strong>Date:</strong> <%= new Date(event.start_datetime).toLocaleDateString() %></p>
-                        <p><strong>Time:</strong> <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %></p>
-                        <p><strong>Capacity:</strong> <%= event.capacity_display %></p>
-                    </div>
-                    <span class="event-status status-attending">Attending</span>
-                    <a href="/event/<%= event.event_id %>" style="display: block; margin-top: 0.5rem;">View Details →</a>
-                </div>
-            <% }); %>
-            <% if (attendingEvents.length === 0) { %>
-                <p style="text-align: center; color: var(--text-secondary);">Not attending any events yet</p>
-            <% } %>
-        </div>
-        
-        <div class="event-column">
-            <h2>🔧 Managed Events</h2>
-            <% adminEvents.forEach(event => { %>
-                <div class="glass-card event-card">
-                    <h3><%= event.event_name %></h3>
-                    <div class="event-meta">
-                        <p><strong>Date:</strong> <%= new Date(event.start_datetime).toLocaleDateString() %></p>
-                        <p><strong>Time:</strong> <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %></p>
-                        <p><strong>Capacity:</strong> <%= event.capacity_display %></p>
-                    </div>
-                    <span class="event-status status-<%= event.user_rsvp_status %>">
-                        <%= event.user_rsvp_status === 'owner' ? 'Owner' : 'Admin' %>
-                    </span>
-                    <a href="/event/<%= event.event_id %>" style="display: block; margin-top: 0.5rem;">Manage →</a>
-                </div>
-            <% }); %>
-            <% if (adminEvents.length === 0) { %>
-                <p style="text-align: center; color: var(--text-secondary);">No events to manage</p>
-            <% } %>
-        </div>
-    </div>
-</div>
+        <div class="container">
+            <h1 style="color: var(--greendale-blue-dark); margin-bottom: 2rem;">My Events Dashboard</h1>
 
-<%- include('partials/footer') %>
+            <div class="event-actions">
+                <a href="/events/history" class="btn btn-secondary">📚 Event History</a>
+                <a href="/events/book" class="btn btn-primary">📅 Book New Event</a>
+                <a href="/events/manage" class="btn btn-primary">⚙️ Manage Events</a>
+            </div>
+
+            <div class="events-grid">
+                <div class="event-column">
+                    <h2>📬 Upcoming Invites</h2>
+                    <% upcomingEvents.forEach(event=> { %>
+                        <div class="glass-card event-card">
+                            <h3>
+                                <%= event.event_name %>
+                            </h3>
+                            <div class="event-meta">
+                                <p><strong>Date:</strong>
+                                    <%= new Date(event.start_datetime).toLocaleDateString() %>
+                                </p>
+                                <p><strong>Time:</strong>
+                                    <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit' ,
+                                        minute:'2-digit'}) %>
+                                </p>
+                                <p><strong>Capacity:</strong>
+                                    <%= event.capacity_display %>
+                                </p>
+                                <% if (event.room_name) { %>
+                                    <p><strong>Room:</strong>
+                                        <%= event.room_name %>
+                                    </p>
+                                    <% } %>
+                            </div>
+                            <span class="event-status status-upcoming">Needs RSVP</span>
+                            <a href="/event/<%= event.event_id %>" style="display: block; margin-top: 0.5rem;">View
+                                Details →</a>
+                        </div>
+                        <% }); %>
+                            <% if (upcomingEvents.length===0) { %>
+                                <p style="text-align: center; color: var(--text-secondary);">No pending invites</p>
+                                <% } %>
+                </div>
+
+                <div class="event-column">
+                    <h2>✅ Attending</h2>
+                    <% attendingEvents.forEach(event=> { %>
+                        <div class="glass-card event-card">
+                            <h3>
+                                <%= event.event_name %>
+                            </h3>
+                            <div class="event-meta">
+                                <p><strong>Date:</strong>
+                                    <%= new Date(event.start_datetime).toLocaleDateString() %>
+                                </p>
+                                <p><strong>Time:</strong>
+                                    <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit' ,
+                                        minute:'2-digit'}) %>
+                                </p>
+                                <p><strong>Capacity:</strong>
+                                    <%= event.capacity_display %>
+                                </p>
+                            </div>
+                            <span class="event-status status-attending">Attending</span>
+                            <a href="/event/<%= event.event_id %>" style="display: block; margin-top: 0.5rem;">View
+                                Details →</a>
+                        </div>
+                        <% }); %>
+                            <% if (attendingEvents.length===0) { %>
+                                <p style="text-align: center; color: var(--text-secondary);">Not attending any events
+                                    yet</p>
+                                <% } %>
+                </div>
+
+                <div class="event-column">
+                    <h2>🔧 Managed Events</h2>
+                    <% adminEvents.forEach(event=> { %>
+                        <div class="glass-card event-card">
+                            <h3>
+                                <%= event.event_name %>
+                            </h3>
+                            <div class="event-meta">
+                                <p><strong>Date:</strong>
+                                    <%= new Date(event.start_datetime).toLocaleDateString() %>
+                                </p>
+                                <p><strong>Time:</strong>
+                                    <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit' ,
+                                        minute:'2-digit'}) %>
+                                </p>
+                                <p><strong>Capacity:</strong>
+                                    <%= event.capacity_display %>
+                                </p>
+                            </div>
+                            <span class="event-status status-<%= event.user_rsvp_status %>">
+                                <%= event.user_rsvp_status==='owner' ? 'Owner' : 'Admin' %>
+                            </span>
+                            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                <a href="/event/<%= event.event_id %>" style="flex: 1;">Manage →</a>
+                                <form action="/event/<%= event.event_id %>/delete" method="POST"
+                                    style="display: inline;"
+                                    onsubmit="return confirm('Are you sure you want to delete this event?');">
+                                    <button type="submit" class="btn btn-danger"
+                                        style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                        <% }); %>
+                            <% if (adminEvents.length===0) { %>
+                                <p style="text-align: center; color: var(--text-secondary);">No events to manage</p>
+                                <% } %>
+                </div>
+            </div>
+        </div>
+
+        <%- include('partials/footer') %>

@@ -1,53 +1,81 @@
 <%- include('partials/header') %>
-<%- include('partials/nav', { activePage: 'events' }) %>
+    <%- include('partials/nav', { activePage: 'events' }) %>
 
-<div class="container">
-    <div class="event-details glass-card">
-        <h1 style="color: var(--greendale-blue-dark); margin-bottom: 1rem;"><%= event.event_name %></h1>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
-            <div>
-                <h3 style="color: var(--greendale-blue);">Event Details</h3>
-                <p><strong>Host:</strong> <%= event.owner_fname %> <%= event.owner_lname %></p>
-                <p><strong>Date:</strong> <%= new Date(event.start_datetime).toLocaleDateString() %></p>
-                <p><strong>Time:</strong> <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %> - <%= new Date(event.end_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %></p>
-                <% if (event.room_name) { %>
-                    <p><strong>Room:</strong> <%= event.room_name %> (Capacity: <%= event.room_capacity %>)</p>
-                <% } %>
-                <p><strong>Privacy:</strong> <%= event.privacy_type.replace('_', ' ') %></p>
-            </div>
-            
-            <div>
-                <h3 style="color: var(--greendale-blue);">Capacity</h3>
-                <p><%= event.attending_count %> attending</p>
-                <% if (event.max_capacity) { %>
-                    <p><%= event.max_capacity - event.attending_count %> spots remaining</p>
-                <% } else { %>
-                    <p>Unlimited spots available</p>
-                <% } %>
-            </div>
-        </div>
-        
-        <div style="margin-bottom: 2rem;">
-            <h3 style="color: var(--greendale-blue);">Description</h3>
-            <p><%= event.event_description || 'No description provided.' %></p>
-        </div>
-        
-        <div class="event-actions">
-            <% if (event.is_owner || event.is_admin) { %>
-                <a href="/event/<%= event.event_id %>/edit" class="btn btn-primary">Edit Event</a>
-                <a href="/event/<%= event.event_id %>/invite" class="btn btn-secondary">Manage Invites</a>
-            <% } %>
-            
-            <form action="/event/<%= event.event_id %>/rsvp" method="POST" class="rsvp-form">
-                <select name="status" onchange="this.form.submit()">
-                    <option value="pending" <%= event.user_status === 'pending' ? 'selected' : '' %>>Maybe</option>
-                    <option value="accepted" <%= event.user_status === 'accepted' ? 'selected' : '' %>>Attending</option>
-                    <option value="declined" <%= event.user_status === 'declined' ? 'selected' : '' %>>Not Attending</option>
-                </select>
-            </form>
-        </div>
-    </div>
-</div>
+        <div class="container">
+            <div class="event-details glass-card">
+                <h1 style="color: var(--greendale-blue-dark); margin-bottom: 1rem;">
+                    <%= event.event_name %>
+                </h1>
 
-<%- include('partials/footer') %>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+                    <div>
+                        <h3 style="color: var(--greendale-blue);">Event Details</h3>
+                        <p><strong>Host:</strong>
+                            <%= event.owner_fname %>
+                                <%= event.owner_lname %>
+                        </p>
+                        <p><strong>Date:</strong>
+                            <%= new Date(event.start_datetime).toLocaleDateString() %>
+                        </p>
+                        <p><strong>Time:</strong>
+                            <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit' ,
+                                minute:'2-digit'}) %> - <%= new Date(event.end_datetime).toLocaleTimeString([],
+                                    {hour: '2-digit' , minute:'2-digit'}) %>
+                        </p>
+                        <% if (event.room_name) { %>
+                            <p><strong>Room:</strong>
+                                <%= event.room_name %> (Capacity: <%= event.room_capacity %>)
+                            </p>
+                            <% } %>
+                                <p><strong>Privacy:</strong>
+                                    <%= event.privacy_type.replace('_', ' ' ) %>
+                                </p>
+                    </div>
+
+                    <div>
+                        <h3 style="color: var(--greendale-blue);">Capacity</h3>
+                        <p>
+                            <%= event.attending_count %> attending
+                        </p>
+                        <% if (event.max_capacity) { %>
+                            <p>
+                                <%= event.max_capacity - event.attending_count %> spots remaining
+                            </p>
+                            <% } else { %>
+                                <p>Unlimited spots available</p>
+                                <% } %>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: var(--greendale-blue);">Description</h3>
+                    <p>
+                        <%= event.event_description || 'No description provided.' %>
+                    </p>
+                </div>
+
+                <div class="event-actions">
+                    <% if (event.is_owner || event.is_admin) { %>
+                        <a href="/event/<%= event.event_id %>/edit" class="btn btn-primary">Edit Event</a>
+                        <a href="/event/<%= event.event_id %>/invite" class="btn btn-secondary">Manage Invites</a>
+                        <form action="/event/<%= event.event_id %>/delete" method="POST" style="display: inline;"
+                            onsubmit="return confirm('Are you sure you want to delete this event?');">
+                            <button type="submit" class="btn btn-danger">Delete Event</button>
+                        </form>
+                        <% } %>
+
+                            <form action="/event/<%= event.event_id %>/rsvp" method="POST" class="rsvp-form">
+                                <select name="status" onchange="this.form.submit()">
+                                    <option value="pending" <%=event.user_status==='pending' ? 'selected' : '' %>>Maybe
+                                    </option>
+                                    <option value="accepted" <%=event.user_status==='accepted' ? 'selected' : '' %>
+                                        >Attending</option>
+                                    <option value="declined" <%=event.user_status==='declined' ? 'selected' : '' %>>Not
+                                        Attending</option>
+                                </select>
+                            </form>
+                </div>
+            </div>
+        </div>
+
+        <%- include('partials/footer') %>

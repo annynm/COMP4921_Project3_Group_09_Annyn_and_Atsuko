@@ -12,7 +12,7 @@ const {
 } = require("./logic/auth");
 const { eventsLogic } = require("./logic/events");
 const { eventDetailsLogic, updateRSVPLogic } = require("./logic/eventDetails");
-const { bookEventGet, editEventGet, createEventPost } = require("./logic/eventForms");
+const { bookEventGet, editEventGet, editEventPost, createEventPost, deleteEventPost } = require("./logic/eventForms");
 const { calendarPageLogic, calendarDayLogic } = require("./logic/calendar");
 const getEventHistorySQL = require("../sql/events/getEventHistory");
 
@@ -53,10 +53,8 @@ router.post("/event/:id/rsvp", updateRSVPLogic);
 router.get("/events/book", bookEventGet);
 router.get("/event/:id/edit", editEventGet);
 router.post("/events/book", createEventPost);
-
-router.post("/event/:id/edit", async (req, res) => {
-  res.status(501).send("Event editing not yet implemented");
-});
+router.post("/event/:id/edit", editEventPost);
+router.post("/event/:id/delete", deleteEventPost);
 
 // Calendar routes
 router.get("/calendar", calendarPageLogic);

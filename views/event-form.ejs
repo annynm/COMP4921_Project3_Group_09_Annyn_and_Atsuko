@@ -1,106 +1,110 @@
 <%- include('partials/header') %>
-<%- include('partials/nav', { activePage: 'events', user: user }) %>
+    <%- include('partials/nav', { activePage: 'events' , user: user }) %>
 
-<%
-// Helper for date/time formatting
-function formatDateTimeLocal(dateStr) {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    const pad = (n) => n.toString().padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-%>
+        <% 
+        // Helper for date/time formatting 
+        function formatDateTimeLocal(dateStr) {
+            if (!dateStr) return '' ; 
+            const date=new Date(dateStr); const pad=(n)=> n.toString().padStart(2, '0');
+            return `${date.getFullYear()}-${pad(date.getMonth() +
+            1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+            }
+        %>
 
-<div class="container">
-    <div class="glass-card" style="max-width: 600px; margin: 0 auto;">
-        <h1 style="color: var(--greendale-blue-dark); margin-bottom: 2rem; text-align: center;">
-            <%= pageTitle %>
-        </h1>
-        
-        <form action="<%= formAction %>" method="POST">
-            <div class="form-group">
-                <label for="event_name">Event Name</label>
-                <input type="text" id="event_name" name="event_name" 
-                       value="<%= formData.event_name || '' %>" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="event_description">Description</label>
-                <textarea id="event_description" name="event_description" rows="4"><%= formData.event_description || '' %></textarea>
-            </div>
-            
-            <div class="form-group">
-                <label for="start_datetime">Start Date & Time</label>
-                <input type="datetime-local" id="start_datetime" name="start_datetime" 
-                       value="<%= formatDateTimeLocal(formData.start_datetime) %>" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="end_datetime">End Date & Time</label>
-                <input type="datetime-local" id="end_datetime" name="end_datetime" 
-                       value="<%= formatDateTimeLocal(formData.end_datetime) %>" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="room_id">Room</label>
-                <select id="room_id" name="room_id">
-                    <option value="">No Room</option>
-                    <% rooms.forEach(function(room) { %>
-                        <option value="<%= room.room_id %>" 
-                                <%= formData.room_id == room.room_id ? 'selected' : '' %>>
-                            <%= room.room_name %> (Capacity: <%= room.capacity %>)
-                        </option>
-                    <% }); %>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="privacy_type">Privacy</label>
-                <select id="privacy_type" name="privacy_type" required>
-                    <option value="public" <%= formData.privacy_type === 'public' ? 'selected' : '' %>>Public</option>
-                    <option value="friends_only" <%= formData.privacy_type === 'friends_only' ? 'selected' : '' %>>Friends Only</option>
-                    <option value="invite_only" <%= formData.privacy_type === 'invite_only' ? 'selected' : '' %>>Invite Only</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="max_capacity">Max Capacity (leave empty for unlimited)</label>
-                <input type="number" id="max_capacity" name="max_capacity" min="1" 
-                       value="<%= formData.max_capacity || '' %>">
-            </div>
-            
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" name="allow_friend_invites" 
-                           <%= formData.allow_friend_invites !== false ? 'checked' : '' %>>
-                    Allow attendees to invite friends
-                </label>
+            <div class="container">
+                <div class="glass-card" style="max-width: 600px; margin: 0 auto;">
+                    <h1 style="color: var(--greendale-blue-dark); margin-bottom: 2rem; text-align: center;">
+                        <%= pageTitle %>
+                    </h1>
+
+                    <form action="<%= formAction %>" method="POST">
+                        <div class="form-group">
+                            <label for="event_name">Event Name</label>
+                            <input type="text" id="event_name" name="event_name"
+                                value="<%= formData.event_name || '' %>" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="event_description">Description</label>
+                            <textarea id="event_description" name="event_description"
+                                rows="4"><%= formData.event_description || '' %></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="start_datetime">Start Date & Time</label>
+                            <input type="datetime-local" id="start_datetime" name="start_datetime"
+                                value="<%= formatDateTimeLocal(formData.start_datetime) %>" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="end_datetime">End Date & Time</label>
+                            <input type="datetime-local" id="end_datetime" name="end_datetime"
+                                value="<%= formatDateTimeLocal(formData.end_datetime) %>" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="room_id">Room</label>
+                            <select id="room_id" name="room_id">
+                                <option value="">No Room</option>
+                                <% rooms.forEach(function(room) { %>
+                                    <option value="<%= room.room_id %>" <%=formData.room_id==room.room_id ? 'selected'
+                                        : '' %>>
+                                        <%= room.room_name %> (Capacity: <%= room.capacity %>)
+                                    </option>
+                                    <% }); %>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="privacy_type">Privacy</label>
+                            <select id="privacy_type" name="privacy_type" required>
+                                <option value="public" <%=formData.privacy_type==='public' ? 'selected' : '' %>>Public
+                                </option>
+                                <option value="friends_only" <%=formData.privacy_type==='friends_only' ? 'selected' : ''
+                                    %>>Friends Only</option>
+                                <option value="invite_only" <%=formData.privacy_type==='invite_only' ? 'selected' : ''
+                                    %>>Invite Only</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="max_capacity">Max Capacity (leave empty for unlimited)</label>
+                            <input type="number" id="max_capacity" name="max_capacity" min="1"
+                                value="<%= formData.max_capacity || '' %>">
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" name="allow_friend_invites" <%=formData.allow_friend_invites
+                                    !==false ? 'checked' : '' %>>
+                                Allow attendees to invite friends
+                            </label>
+                        </div>
+
+                        <div class="form-group" style="display: flex; align-items: center; gap: 12px;">
+                            <label for="color">Event Display Color</label>
+                            <input type="color" id="color" name="color" value="<%= formData.color || '#4287f5' %>"
+                                style="width: 50px; height: 40px; padding: 0; border: none;">
+                        </div>
+
+                        <button type="submit" class="cta-button" style="width: 100%;">
+                            <%= submitButtonText %>
+                        </button>
+                    </form>
+                </div>
             </div>
 
-            <div class="form-group" style="display: flex; align-items: center; gap: 12px;">
-                <label for="color">Event DisplayColor</label>
-                <input type="color" id="color" name="color" value="#4287f5"
-                    style="width: 50px; height: 40px; padding: 0; border: none;">
-            </div>
-            
-            <button type="submit" class="cta-button" style="width: 100%;">
-                <%= submitButtonText %>
-            </button>
-        </form>
-    </div>
-</div>
+            <script>
+                const picker = document.getElementById("color");
+                const preview = document.getElementById("colorPreview");
 
-<script>
-    const picker = document.getElementById("color");
-    const preview = document.getElementById("colorPreview");
+                // set initial color
+                preview.style.backgroundColor = picker.value;
 
-    // set initial color
-    preview.style.backgroundColor = picker.value;
+                // update preview when color changes
+                picker.addEventListener("input", () => {
+                    preview.style.backgroundColor = picker.value;
+                });
+            </script>
 
-    // update preview when color changes
-    picker.addEventListener("input", () => {
-        preview.style.backgroundColor = picker.value;
-    });
-</script>
-
-<%- include('partials/footer') %>
+            <%- include('partials/footer') %>

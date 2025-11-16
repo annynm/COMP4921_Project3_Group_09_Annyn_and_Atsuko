@@ -5,8 +5,8 @@ module.exports = (userId, limit = 20) => ({
             FROM event e
             INNER JOIN rsvp ON e.event_id = rsvp.event_id AND rsvp.user_id = $1 AND rsvp.status = 'accepted'
             WHERE e.end_datetime > NOW()
-            -- AND e.is_deleted = FALSE  -- missing
-            -- AND e.is_cancelled = FALSE  -- missing
+            AND e.is_deleted = FALSE  -- missing
+            AND e.is_cancelled = FALSE  -- missing
         )
 
         SELECT

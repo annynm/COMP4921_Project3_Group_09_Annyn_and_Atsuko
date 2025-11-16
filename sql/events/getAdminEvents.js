@@ -1,6 +1,15 @@
 module.exports = (userId, limit = 20) => ({
     text: `
-        WITH admin_events AS (
+        WITH user_admin_event_ids AS (
+            SELECT DISTINCT e.event_id
+            FROM event e
+            LEFT JOIN event_admin ea ON e.event_id = ea.event_id
+            WHERE e.is_deleted = FALSE
+            AND e.is_cancelled = FALSE
+            AND e.start_datetime > NOW()
+            AND (e.owner_id = $1 OR ea.user_id = $1)
+        ),
+        admin_events AS (
             SELECT 
                 e.event_id,
                 e.event_name,
@@ -17,14 +26,10 @@ module.exports = (userId, limit = 20) => ({
                     ELSE 'admin'
                 END as admin_status
             FROM event e
+            INNER JOIN user_admin_event_ids uaei ON e.event_id = uaei.event_id
             LEFT JOIN rooms r ON e.room_id = r.room_id
             LEFT JOIN rsvp ON e.event_id = rsvp.event_id
-            LEFT JOIN event_admin ea ON e.event_id = ea.event_id
-            WHERE e.is_deleted = FALSE
-            AND e.is_cancelled = FALSE
-            AND e.start_datetime > NOW()
-            AND (e.owner_id = $1 OR ea.user_id = $1)
-            GROUP BY e.event_id, r.room_name, ea.user_id
+            GROUP BY e.event_id, r.room_name
         )
         SELECT 
             ae.*,

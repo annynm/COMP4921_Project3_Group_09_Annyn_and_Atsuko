@@ -76,6 +76,12 @@ function formatDateTimeLocal(dateStr) {
                     Allow attendees to invite friends
                 </label>
             </div>
+
+            <div class="form-group" style="display: flex; align-items: center; gap: 12px;">
+                <label for="color">Event DisplayColor</label>
+                <input type="color" id="color" name="color" value="#4287f5"
+                    style="width: 50px; height: 40px; padding: 0; border: none;">
+            </div>
             
             <button type="submit" class="cta-button" style="width: 100%;">
                 <%= submitButtonText %>
@@ -83,5 +89,18 @@ function formatDateTimeLocal(dateStr) {
         </form>
     </div>
 </div>
+
+<script>
+    const picker = document.getElementById("color");
+    const preview = document.getElementById("colorPreview");
+
+    // set initial color
+    preview.style.backgroundColor = picker.value;
+
+    // update preview when color changes
+    picker.addEventListener("input", () => {
+        preview.style.backgroundColor = picker.value;
+    });
+</script>
 
 <%- include('partials/footer') %>

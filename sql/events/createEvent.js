@@ -5,16 +5,14 @@ module.exports = (eventData) => ({
                 event_name,
                 owner_id,
                 event_description,
-                start_datetime,
-                end_datetime,
-                privacy_type,
-                max_capacity,
+                is_recurring,
                 room_id,
                 color,
                 is_all_day,
-                allow_friend_invites
+                start_datetime,
+                end_datetime
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *
         )
         SELECT * FROM new_event
@@ -23,13 +21,11 @@ module.exports = (eventData) => ({
         eventData.event_name,
         eventData.owner_id,
         eventData.event_description || null,
+        eventData.is_recurring || false,
+        eventData.room_id || null,
+        eventData.color || "#4287f5", // default
+        eventData.is_all_day || false,
         eventData.start_datetime,
         eventData.end_datetime,
-        eventData.privacy_type || "public",
-        eventData.max_capacity || null,
-        eventData.room_id || null,
-        eventData.color || null,
-        eventData.is_all_day || false,
-        eventData.allow_friend_invites !== false,
     ],
 });

@@ -1,37 +1,24 @@
-// Global variables
 let currentYear, currentMonth;
 let selectedDate = null;
+let selectedDayElement = null;
 
-// Initialize on page load
 document.addEventListener("DOMContentLoaded", function() {
   const urlParams = new URLSearchParams(window.location.search);
   const now = new Date();
   currentYear = parseInt(urlParams.get("year")) || now.getFullYear();
   currentMonth = parseInt(urlParams.get("month")) || now.getMonth();
 
-  loadCalendar();
+  updateMonthDisplay();
   setupNavigation();
 });
 
 function setupNavigation() {
   document.getElementById("prevMonth").addEventListener("click", function() {
-    currentMonth--;
-    if (currentMonth < 0) {
-      currentMonth = 11;
-      currentYear--;
-    }
-    updateURL();
-    loadCalendar();
+    navigateMonth(-1);
   });
 
   document.getElementById("nextMonth").addEventListener("click", function() {
-    currentMonth++;
-    if (currentMonth > 11) {
-      currentMonth = 0;
-      currentYear++;
-    }
-    updateURL();
-    loadCalendar();
+    navigateMonth(1);
   });
 
   document
@@ -39,12 +26,32 @@ function setupNavigation() {
     .addEventListener("click", closeDayView);
 }
 
+function navigateMonth(direction) {
+  currentMonth += direction;
+
+  if (currentMonth < 0) {
+    currentMonth = 11;
+    currentYear--;
+  } else if (currentMonth > 11) {
+    currentMonth = 0;
+    currentYear++;
+  }
+
+  updateCalendar();
+}
+
+function updateCalendar() {
+  updateURL();
+  closeDayView();
+  loadCalendarGrid();
+}
+
 function updateURL() {
   const url = `/calendar?year=${currentYear}&month=${currentMonth}`;
   window.history.pushState({}, "", url);
 }
 
-function loadCalendar() {
+function updateMonthDisplay() {
   const monthName = new Date(currentYear, currentMonth).toLocaleDateString(
     "en-US",
     {
@@ -53,11 +60,48 @@ function loadCalendar() {
     },
   );
   document.getElementById("currentMonth").textContent = monthName;
-
-  document.getElementById("calendarGrid").style.display = "grid";
 }
 
-function loadDayView(date) {
+function loadCalendarGrid() {
+  fetch(`/calendar/grid?year=${currentYear}&month=${currentMonth}`)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      return response.text();
+    })
+    .then((html) => {
+      const calendarGrid = document.getElementById("calendarGrid");
+
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = html;
+
+      const newCalendarContent = tempDiv.querySelector(".calendar-grid");
+
+      if (newCalendarContent) {
+        calendarGrid.innerHTML = newCalendarContent.innerHTML;
+      }
+
+      updateMonthDisplay();
+    })
+    .catch((error) => {
+      console.error("Error loading calendar grid:", error);
+      window.location.href = `/calendar?year=${currentYear}&month=${currentMonth}`;
+    });
+}
+
+function loadDayView(element, date) {
+  if (selectedDate === date) {
+    closeDayView();
+    return;
+  }
+
+  if (selectedDayElement) {
+    selectedDayElement.classList.remove("selected");
+  }
+
+  selectedDayElement = element;
+  selectedDayElement.classList.add("selected");
   selectedDate = date;
 
   fetch(`/calendar/api?date=${date}`)
@@ -68,19 +112,43 @@ function loadDayView(date) {
         return;
       }
 
-      document.getElementById("calendarGrid").style.display = "none";
-      document.querySelector(".calendar-nav").style.display = "none";
-
       const dayViewContainer = document.getElementById("dayViewContainer");
-      dayViewContainer.style.display = "block";
+      insertDayViewAfterWeek(element);
 
+      dayViewContainer.style.display = "block";
+      dayViewContainer.classList.add("active");
       document.getElementById("dayViewTitle").textContent = data.dayName;
 
       renderDayView(data.events || [], date);
-
-      renderRemainingWeeks(date);
     })
     .catch((error) => console.error("Day fetch error:", error));
+}
+
+function insertDayViewAfterWeek(clickedDayElement) {
+  const dayViewContainer = document.getElementById("dayViewContainer");
+  const calendarGrid = document.getElementById("calendarGrid");
+
+  const dayElements = Array.from(
+    calendarGrid.querySelectorAll(".calendar-day"),
+  );
+  const clickedIndex = dayElements.indexOf(clickedDayElement);
+
+  if (clickedIndex === -1) return;
+
+  const daysPerWeek = 7;
+  const weekIndex = Math.floor(clickedIndex / daysPerWeek);
+
+  const lastDayIndex = Math.min(
+    (weekIndex + 1) * daysPerWeek - 1,
+    dayElements.length - 1,
+  );
+  const lastDayOfWeek = dayElements[lastDayIndex];
+
+  if (lastDayOfWeek.nextSibling) {
+    calendarGrid.insertBefore(dayViewContainer, lastDayOfWeek.nextSibling);
+  } else {
+    calendarGrid.appendChild(dayViewContainer);
+  }
 }
 
 function renderDayView(events, date) {
@@ -91,7 +159,6 @@ function renderDayView(events, date) {
 
   for (let hour = 0; hour < 24; hour++) {
     const hourStart = hour * 60;
-    const halfHour = hourStart + 30;
     const quarter1 = hourStart + 15;
     const quarter2 = hourStart + 45;
 
@@ -128,9 +195,17 @@ function renderDayView(events, date) {
       html += '<div class="event-overlay-name">' + event.event_name + "</div>";
       html +=
         '<div class="event-overlay-time">' +
-        start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
+        start.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        }) +
         " - " +
-        end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
+        end.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        }) +
         "</div>";
       if (event.room_name) {
         html += '<div class="event-overlay-room">' + event.room_name + "</div>";
@@ -142,8 +217,11 @@ function renderDayView(events, date) {
   html += "</div>";
 
   container.innerHTML = html;
-
   addTimeSlotClickHandlers(date);
+
+  setTimeout(() => {
+    document.getElementById("dayViewContainer").classList.remove("active");
+  }, 300);
 }
 
 function addTimeSlotClickHandlers(date) {
@@ -164,8 +242,7 @@ function addTimeSlotClickHandlers(date) {
         const hour = parseInt(this.dataset.hour);
         const rect = this.getBoundingClientRect();
         const y = e.clientY - rect.top;
-        const minute = Math.floor((y / 60) * 60); // Convert pixel to minute
-
+        const minute = Math.floor((y / 60) * 60);
         const roundedMinute = Math.round(minute / 15) * 15;
 
         const bookingUrl = `/events/book?date=${date}&hour=${hour}&minute=${roundedMinute}`;
@@ -175,17 +252,15 @@ function addTimeSlotClickHandlers(date) {
   }, 100);
 }
 
-function renderRemainingWeeks(selectedDate) {
-  const container = document.getElementById("remainingWeeks");
-  container.innerHTML =
-    '<div style="text-align: center; margin: 2rem 0;"><hr><p style="color: var(--text-secondary);">Remaining weeks view would go here</p></div>';
-}
-
 function closeDayView() {
-  document.getElementById("dayViewContainer").style.display = "none";
-  document.getElementById("calendarGrid").style.display = "grid";
-  document.querySelector(".calendar-nav").style.display = "flex";
-  document.getElementById("remainingWeeks").innerHTML = "";
+  const dayViewContainer = document.getElementById("dayViewContainer");
+  dayViewContainer.style.display = "none";
+
+  if (selectedDayElement) {
+    selectedDayElement.classList.remove("selected");
+    selectedDayElement = null;
+  }
+
   selectedDate = null;
 }
 
@@ -201,7 +276,7 @@ window.addEventListener("popstate", function() {
   ) {
     currentYear = newYear;
     currentMonth = newMonth;
-    loadCalendar();
     closeDayView();
+    loadCalendarGrid();
   }
 });

@@ -6,14 +6,22 @@ const calendarPageLogic = async (req, res) => {
   try {
     const userId = req.session.user.id;
     const now = new Date();
-    const year = parseInt(req.query.year) || now.getFullYear();
-    const month = parseInt(req.query.month) || now.getMonth();
+
+    let year = parseInt(req.query.year);
+    let month = parseInt(req.query.month);
+
+    if (isNaN(year)) year = now.getFullYear();
+    if (isNaN(month)) month = now.getMonth();
 
     if (month < 0 || month > 11) {
       return res.status(400).json({ error: "Invalid month" });
     }
 
-    const result = await pool.query(getCalendarEventsSQL(userId, year, month));
+    const sqlMonth = month + 1;
+
+    const result = await pool.query(
+      getCalendarEventsSQL(userId, year, sqlMonth),
+    );
 
     res.render("calendar", {
       title: "Calendar",
@@ -28,10 +36,6 @@ const calendarPageLogic = async (req, res) => {
       title: "Error",
       user: req.session.user,
       error: "Failed to load calendar",
-      errorDetails: {
-        message: error.message,
-        stack: error.stack,
-      },
     });
   }
 };
@@ -51,7 +55,7 @@ const calendarDayLogic = async (req, res) => {
       const start = new Date(event.start_datetime);
       const end = new Date(event.end_datetime);
       const startMinutes = start.getHours() * 60 + start.getMinutes();
-      const duration = (end - start) / (1000 * 60); // minutes
+      const duration = (end - start) / (1000 * 60);
 
       return {
         ...event,
@@ -69,6 +73,7 @@ const calendarDayLogic = async (req, res) => {
         weekday: "long",
         month: "long",
         day: "numeric",
+        year: "numeric",
       }),
     });
   } catch (error) {
@@ -80,4 +85,32 @@ const calendarDayLogic = async (req, res) => {
   }
 };
 
-module.exports = { calendarPageLogic, calendarDayLogic };
+const calendarGridLogic = async (req, res) => {
+  try {
+    const userId = req.session.user.id;
+    const year = parseInt(req.query.year);
+    const month = parseInt(req.query.month);
+
+    if (isNaN(year) || isNaN(month) || month < 0 || month > 11) {
+      return res.status(400).json({ error: "Invalid year or month" });
+    }
+
+    const sqlMonth = month + 1;
+    const result = await pool.query(
+      getCalendarEventsSQL(userId, year, sqlMonth),
+    );
+
+    res.render("partials/calendar-day-box", {
+      events: result.rows,
+      year: year,
+      month: month,
+      query: { year, month },
+      layout: false,
+    });
+  } catch (error) {
+    console.error("Calendar grid error:", error);
+    res.status(500).send("Error loading calendar");
+  }
+};
+
+module.exports = { calendarPageLogic, calendarDayLogic, calendarGridLogic };

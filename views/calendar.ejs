@@ -12,25 +12,22 @@
             </div>
         </div>
         
-        <!-- Calendar Grid - Always Rendered -->
-        <%- include('partials/calendar-day-box', { 
-            events: events, 
-            year: query.year, 
-            month: query.month,
-            query: query
-        }) %>
-        
-        <!-- Day View Container - Hidden by default -->
-        <div id="dayViewContainer" class="day-view-container" style="display: none;">
-            <div class="day-view-header">
-                <h3 id="dayViewTitle"></h3>
-                <button id="closeDayView" class="btn btn-secondary">✕ Close</button>
+        <div class="calendar-grid" id="calendarGrid">
+            <%- include('partials/calendar-day-box', { 
+                events: events, 
+                year: query.year, 
+                month: query.month,
+                query: query
+            }) %>
+            
+            <div id="dayViewContainer" class="day-view-container" style="display: none;">
+                <div class="day-view-header">
+                    <h3 id="dayViewTitle"></h3>
+                    <button id="closeDayView" class="btn btn-secondary">✕ Close</button>
+                </div>
+                <div id="dayViewContent"></div>
             </div>
-            <div id="dayViewContent"></div>
         </div>
-        
-        <!-- Remaining Weeks -->
-        <div id="remainingWeeks" class="remaining-weeks"></div>
     </div>
 </div>
 

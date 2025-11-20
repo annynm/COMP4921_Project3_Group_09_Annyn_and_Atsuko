@@ -1,73 +1,104 @@
-<% 
-// Helper functions 
-function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); } 
-function getFirstDayOfMonth(year, month) { return new Date(year, month, 1).getDay(); } 
+<%
+function getDaysInMonth(year, month) {
+    return new Date(year, month + 1, 0).getDate();
+}
+
+function getFirstDayOfMonth(year, month) {
+    return new Date(year, month, 1).getDay();
+}
+
 function formatDate(year, month, day) {
-    const m=String(month + 1).padStart(2, '0' ); 
-    const d=String(day).padStart(2, '0' ); 
-    return year + '-' + m + '-' + d; 
-} 
+    const m = String(month + 1).padStart(2, '0');
+    const d = String(day).padStart(2, '0');
+    return `${year}-${m}-${d}`;
+}
 
-const daysInMonth=getDaysInMonth(year, month); 
-const firstDay=getFirstDayOfMonth(year, month); const
-    days=Array.from({length: daysInMonth}, function(_, i) { return i + 1; }); 
-const eventsByDate={}; 
-if (typeof events!=='undefined' && events !==null) {
-    events.forEach(function(event) {
-        const date=new Date(event.start_datetime).toISOString().split('T')[0]; 
-    if (!eventsByDate[date]) eventsByDate[date]=[];
-    eventsByDate[date].push(event); 
-}); 
-} 
+const daysInMonth = getDaysInMonth(year, month);
+const firstDay = getFirstDayOfMonth(year, month);
+const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
-const today=new Date().toISOString().split('T')[0]; 
+const eventsByDate = {};
+if (typeof events !== 'undefined' && events !== null) {
+    events.forEach(event => {
+        try {
+            const date = new Date(event.start_datetime)
+                .toISOString()
+                .split('T')[0];
+            if (!eventsByDate[date]) eventsByDate[date] = [];
+            eventsByDate[date].push(event);
+        } catch (error) {
+            console.error('Error processing event:', event, error);
+        }
+    });
+}
 
+Object.keys(eventsByDate).forEach(date => {
+    eventsByDate[date].sort((a, b) => {
+        return new Date(a.start_datetime) - new Date(b.start_datetime);
+    });
+});
+
+const today = new Date().toISOString().split('T')[0];
 %>
 
-    <div class="calendar-grid" id="calendarGrid">
-        <!-- Day headers -->
-        <% const dayHeaders=['Sun', 'Mon' , 'Tue' , 'Wed' , 'Thu' , 'Fri' , 'Sat' ]; %>
-            <% dayHeaders.forEach(function(day) { %>
-                <div class="calendar-header">
-                    <%= day %>
-                </div>
-                <% }); %>
+<%
+const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+dayHeaders.forEach(day => { %>
+    <div class="calendar-header"><%= day %></div>
+<% }); %>
 
-                    <!-- Empty cells before first day -->
-                    <% for (let i=0; i < firstDay; i++) { %>
-                        <div class="calendar-day empty"></div>
-                        <% } %>
+<% for (let i = 0; i < firstDay; i++) { %>
+    <div class="calendar-day empty"></div>
+<% } %>
 
-                            <!-- Days of the month - ALL days rendered -->
-                            <% days.forEach(function(day) { %>
-                                <% const dateStr=formatDate(year, month, day); const dayEvents=eventsByDate[dateStr] ||
-                                    []; const isToday=dateStr===today; %>
-                                    <div class="calendar-day <%= isToday ? 'today' : '' %>" data-date="<%= dateStr %>"
-                                        onclick="loadDayView('<%= dateStr %>')">
-                                        <div class="day-header">
-                                            <span class="day-number">
-                                                <%= day %>
-                                            </span>
-                                            <% if (dayEvents.length> 0) { %>
-                                                <span class="event-count">
-                                                    <%= dayEvents.length %>
-                                                </span>
-                                                <% } %>
-                                        </div>
-                                        <div class="day-events">
-                                            <% dayEvents.slice(0, 4).forEach(function(event) { %>
-                                                <% const eventColor=event.color || 'var(--greendale-blue-light)' ; %>
-                                                    <a href="/event/<%= event.event_id %>" class="mini-event"
-                                                        style="background: <%= eventColor %>; text-decoration: none; color: inherit; display: block;"
-                                                        onclick="event.stopPropagation();">
-                                                        <%= event.event_name %>
-                                                    </a>
-                                                    <% }); %>
-                                                        <% if (dayEvents.length> 4) { %>
-                                                            <div class="more-events" onclick="event.stopPropagation();">
-                                                                +<%= dayEvents.length - 4 %> more</div>
-                                                            <% } %>
-                                        </div>
-                                    </div>
-                                    <% }); %>
+<%
+days.forEach(day => {
+    const dateStr = formatDate(year, month, day);
+    const dayEvents = eventsByDate[dateStr] || [];
+    const isToday = dateStr === today;
+%>
+
+<div class="calendar-day <%= isToday ? 'today' : '' %>"
+     data-date="<%= dateStr %>"
+     onclick="loadDayView(this, '<%= dateStr %>')">
+
+    <div class="day-header">
+        <span class="day-number"><%= day %></span>
+        <% if (dayEvents.length > 0) { %>
+            <span class="event-count"><%= dayEvents.length %></span>
+        <% } %>
     </div>
+
+    <div class="day-events">
+        <% if (dayEvents.length > 0) { %>
+            <% dayEvents.forEach(event => {
+                const start = new Date(event.start_datetime);
+                const end = new Date(event.end_datetime);
+
+                const startTime = start.toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+
+                const endTime = end.toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+
+                const eventColor = event.color || 'var(--greendale-blue-light)';
+            %>
+            <div class="mini-event" 
+                 style="background: <%= eventColor %>;"
+                 onclick="event.stopPropagation(); window.location.href='/event/<%= event.event_id %>'">
+                <div class="mini-event-title"><%= event.event_name %></div>
+                <div class="mini-event-time"><%= startTime %> - <%= endTime %></div>
+            </div>
+            <% }); %>
+        <% } else { %>
+            <div class="no-events">No events</div>
+        <% } %>
+    </div>
+</div>
+<% }); %>

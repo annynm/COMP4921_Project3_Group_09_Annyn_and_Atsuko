@@ -367,15 +367,18 @@ footer {
   min-height: auto !important;
 }
 
+/* Enhanced Calendar Day Styles */
 .calendar-day {
   background: var(--glass-bg);
-  min-height: 120px;
+  min-height: 140px;
+  /* Increased height to show more events */
   padding: 0.5rem;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
   position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .calendar-day.empty {
@@ -383,14 +386,34 @@ footer {
 }
 
 .calendar-day:hover {
-  background: rgba(0, 102, 204, 0.05);
+  background: rgba(0, 102, 204, 0.1);
   transform: scale(1.02);
   z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .calendar-day.today {
   background: rgba(0, 102, 204, 0.15);
   border: 2px solid var(--greendale-blue);
+}
+
+.calendar-day.today .day-number {
+  color: var(--greendale-blue-dark);
+  font-weight: 800;
+}
+
+.calendar-day.selected {
+  background: var(--warning) !important;
+  color: white;
+}
+
+.calendar-day.selected .day-number {
+  color: white;
+}
+
+.calendar-day.selected .event-count {
+  background: white;
+  color: var(--warning);
 }
 
 .day-header {
@@ -399,11 +422,14 @@ footer {
   align-items: center;
   margin-bottom: 0.5rem;
   font-weight: 600;
+  flex-shrink: 0;
+  /* Prevent header from shrinking */
 }
 
 .day-number {
   font-size: 1.1rem;
   color: var(--text-primary);
+  font-weight: 700;
 }
 
 .event-count {
@@ -416,18 +442,21 @@ footer {
   align-items: center;
   justify-content: center;
   font-size: 0.7rem;
+  font-weight: 600;
 }
 
 .day-events {
+  flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  flex: 1;
-  min-height: 0;
+  max-height: 100px;
+  /* Fixed height for scrolling */
   padding-right: 2px;
 }
 
+/* Custom scrollbar for day events */
 .day-events::-webkit-scrollbar {
-  width: 4px;
+  width: 3px;
 }
 
 .day-events::-webkit-scrollbar-track {
@@ -441,43 +470,66 @@ footer {
 }
 
 .mini-event {
-  font-size: 0.7rem;
+  background: var(--greendale-blue-light);
   color: white;
-  padding: 2px 4px;
-  margin: 1px 0;
-  border-radius: 3px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  padding: 4px 6px;
+  margin: 2px 0;
+  border-radius: 4px;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s ease;
+  border-left: 3px solid rgba(255, 255, 255, 0.3);
 }
 
 .mini-event:hover {
-  opacity: 0.9;
+  transform: translateX(2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.more-events {
+.mini-event-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+  margin-bottom: 1px;
+}
+
+.mini-event-time {
   font-size: 0.65rem;
+  font-style: italic;
+  opacity: 0.9;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.no-events {
+  font-size: 0.7rem;
   color: var(--text-secondary);
   font-style: italic;
   text-align: center;
+  padding: 0.5rem 0;
 }
 
 /* Day View */
 .day-view-container {
+  grid-column: 1 / -1;
   background: var(--glass-bg);
   backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
   box-shadow: var(--glass-shadow);
-  margin: 2rem 0;
+  margin: 0;
   padding: 1.5rem;
   display: none;
+  transform-origin: top;
 }
 
 .day-view-container.active {
   display: block;
+  animation: slideDown 0.3s ease-out;
 }
 
 .day-view-header {
@@ -622,6 +674,21 @@ footer {
   margin-top: 2rem;
 }
 
+/* Day view animation */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: scaleY(0);
+  }
+
+  to {
+    opacity: 1;
+    max-height: 1000px;
+    transform: scaleY(1);
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .events-grid {
@@ -638,11 +705,28 @@ footer {
   }
 
   .calendar-day {
-    min-height: 80px;
+    min-height: 100px;
   }
 
   .day-events {
-    display: none;
+    max-height: 70px;
+  }
+
+  .mini-event-title {
+    font-size: 0.7rem;
+  }
+
+  .mini-event-time {
+    font-size: 0.6rem;
+  }
+
+  .calendar-header-controls {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .calendar-nav {
+    justify-content: center;
   }
 
   .hour-label {
@@ -661,14 +745,5 @@ footer {
   .event-overlay-time,
   .event-overlay-room {
     font-size: 0.6rem;
-  }
-
-  .calendar-header-controls {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .calendar-nav {
-    justify-content: center;
   }
 }

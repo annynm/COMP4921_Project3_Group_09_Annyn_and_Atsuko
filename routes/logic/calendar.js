@@ -1,26 +1,34 @@
 const { pool } = require("../../config/database");
-const getCalendarEventsSQL = require("../../sql/events/getCalendarEvents");
-const getDayEventsSQL = require("../../sql/events/getDayEvents");
+const getAttendingCalendarEventsSQL = require("../../sql/events/getAttendingCalendarEvents");
+const getAttendingDayEventsSQL = require("../../sql/events/getAttendingDayEvents");
 
 const calendarPageLogic = async (req, res) => {
   try {
     const userId = req.session.user.id;
     const now = new Date();
 
-    let year = parseInt(req.query.year);
-    let month = parseInt(req.query.month);
+    // Accept month as 1-12 in the URL. Internally we use 0-11 for templates/Date().
+    let year = parseInt(req.query.year, 10);
+    const monthParam = req.query.month; // expected 1..12 or undefined
 
     if (isNaN(year)) year = now.getFullYear();
-    if (isNaN(month)) month = now.getMonth();
 
-    if (month < 0 || month > 11) {
-      return res.status(400).json({ error: "Invalid month" });
+    let month; // 0-11 internally
+    if (typeof monthParam === "undefined") {
+      month = now.getMonth();
+    } else {
+      const parsedMonth = parseInt(monthParam, 10);
+      // Reject month=0 and out-of-range values
+      if (isNaN(parsedMonth) || parsedMonth < 1 || parsedMonth > 12) {
+        return res.status(400).json({ error: "Invalid month (must be 1-12)" });
+      }
+      month = parsedMonth - 1; // normalize to 0-11
     }
 
-    const sqlMonth = month + 1;
+    const sqlMonth = month + 1; // 1-12 for SQL
 
     const result = await pool.query(
-      getCalendarEventsSQL(userId, year, sqlMonth),
+      getAttendingCalendarEventsSQL(userId, year, sqlMonth),
     );
 
     res.render("calendar", {
@@ -28,6 +36,7 @@ const calendarPageLogic = async (req, res) => {
       user: req.session.user,
       activePage: "calendar",
       events: result.rows,
+      // Pass month as 0-based to templates (they expect 0-11)
       query: { year, month },
     });
   } catch (error) {
@@ -49,7 +58,7 @@ const calendarDayLogic = async (req, res) => {
       return res.status(400).json({ error: "Date parameter required" });
     }
 
-    const result = await pool.query(getDayEventsSQL(userId, date));
+    const result = await pool.query(getAttendingDayEventsSQL(userId, date));
 
     const eventsWithPositions = result.rows.map((event) => {
       const start = new Date(event.start_datetime);
@@ -88,22 +97,36 @@ const calendarDayLogic = async (req, res) => {
 const calendarGridLogic = async (req, res) => {
   try {
     const userId = req.session.user.id;
-    const year = parseInt(req.query.year);
-    const month = parseInt(req.query.month);
+    const year = parseInt(req.query.year, 10);
 
-    if (isNaN(year) || isNaN(month) || month < 0 || month > 11) {
-      return res.status(400).json({ error: "Invalid year or month" });
+    const monthParam = req.query.month;
+
+    // Validate year and month
+    if (isNaN(year)) {
+      return res.status(400).json({ error: "Invalid year" });
     }
 
-    const sqlMonth = month + 1;
+    let month; // internal 0-11
+    if (typeof monthParam === "undefined") {
+      month = new Date().getMonth();
+    } else {
+      const parsedMonth = parseInt(monthParam, 10);
+      if (isNaN(parsedMonth) || parsedMonth < 1 || parsedMonth > 12) {
+        return res.status(400).json({ error: "Invalid month (must be 1-12)" });
+      }
+      month = parsedMonth - 1;
+    }
+
+    const sqlMonth = month + 1; // 1-12 for SQL
+
     const result = await pool.query(
-      getCalendarEventsSQL(userId, year, sqlMonth),
+      getAttendingCalendarEventsSQL(userId, year, sqlMonth),
     );
 
     res.render("partials/calendar-day-box", {
       events: result.rows,
       year: year,
-      month: month,
+      month: month, // pass 0-based to partials
       query: { year, month },
       layout: false,
     });

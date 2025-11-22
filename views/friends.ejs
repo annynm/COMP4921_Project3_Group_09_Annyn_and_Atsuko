@@ -1,0 +1,142 @@
+<%- include('partials/header') %>
+    <%- include('partials/nav', { activePage: 'friends' }) %>
+
+        <div class="container">
+            <h1 style="color: var(--greendale-blue-dark); margin-bottom: 2rem;">Friend Requests</h1>
+
+            <div class="event-actions">
+                <button class="btn btn-primary" onclick="openAddFriendModal()">+ Add Friend</button>
+            </div>
+
+            <div class="events-grid">
+                <div class="event-column">
+                    <h2>Accepted</h2>
+                    <% if (typeof acceptedFriends !=='undefined' && acceptedFriends.length> 0) { %>
+                        <% acceptedFriends.forEach(friend=> { %>
+                            <div class="glass-card event-card">
+                                <h3>
+                                    <%= friend.fname %>
+                                        <%= friend.lname %>
+                                </h3>
+                                <div class="event-meta">
+                                    <p><strong>Username:</strong>
+                                        <%= friend.user_name %>
+                                    </p>
+                                    <p><strong>Email:</strong>
+                                        <%= friend.email %>
+                                    </p>
+                                </div>
+                                <span class="event-status status-attending">Friend</span>
+                            </div>
+                            <% }); %>
+                                <% } else { %>
+                                    <p style="text-align: center; color: var(--text-secondary);">No friends yet</p>
+                                    <% } %>
+                </div>
+
+                <div class="event-column">
+                    <h2>Pending</h2>
+                    <% if (typeof pendingRequests !=='undefined' && pendingRequests.length> 0) { %>
+                        <% pendingRequests.forEach(request=> { %>
+                            <div class="glass-card event-card">
+                                <h3>
+                                    <%= request.fname %>
+                                        <%= request.lname %>
+                                </h3>
+                                <div class="event-meta">
+                                    <p><strong>Username:</strong>
+                                        <%= request.user_name %>
+                                    </p>
+                                </div>
+                                <span class="event-status status-upcoming">Pending</span>
+                                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <form action="/friends/accept/<%= request.friendship_id %>" method="POST"
+                                        style="flex: 1;">
+                                        <button type="submit" class="btn btn-primary"
+                                            style="width: 100%; padding: 0.5rem;">Accept</button>
+                                    </form>
+                                    <form action="/friends/decline/<%= request.friendship_id %>" method="POST"
+                                        style="flex: 1;">
+                                        <button type="submit" class="btn btn-danger"
+                                            style="width: 100%; padding: 0.5rem;">Decline</button>
+                                    </form>
+                                </div>
+                            </div>
+                            <% }); %>
+                                <% } else { %>
+                                    <p style="text-align: center; color: var(--text-secondary);">No pending requests</p>
+                                    <% } %>
+                </div>
+
+                <div class="event-column">
+                    <h2>Request Outgoing</h2>
+                    <% if (typeof outgoingRequests !=='undefined' && outgoingRequests.length> 0) { %>
+                        <% outgoingRequests.forEach(request=> { %>
+                            <div class="glass-card event-card">
+                                <h3>
+                                    <%= request.fname %>
+                                        <%= request.lname %>
+                                </h3>
+                                <div class="event-meta">
+                                    <p><strong>Username:</strong>
+                                        <%= request.user_name %>
+                                    </p>
+                                </div>
+                                <span class="event-status status-upcoming">Waiting</span>
+                                <form action="/friends/cancel/<%= request.friendship_id %>" method="POST"
+                                    style="margin-top: 0.5rem;">
+                                    <button type="submit" class="btn btn-secondary"
+                                        style="width: 100%; padding: 0.5rem;"
+                                        onsubmit="return confirm('Are you sure you want to cancel this friend request?');">Cancel
+                                        Request</button>
+                                </form>
+                            </div>
+                            <% }); %>
+                                <% } else { %>
+                                    <p style="text-align: center; color: var(--text-secondary);">No outgoing requests
+                                    </p>
+                                    <% } %>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Add Friend Modal -->
+        <div id="addFriendModal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 2000; align-items: center; justify-content: center;">
+            <div class="glass-card" style="max-width: 400px; width: 90%; position: relative;">
+                <button onclick="closeAddFriendModal()"
+                    style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-primary);">&times;</button>
+                <h2 style="color: var(--greendale-blue-dark); margin-bottom: 1.5rem;">Add New Friend</h2>
+                <form action="/friends/request" method="POST" class="login-form" style="max-width: 100%;">
+                    <div class="form-group">
+                        <label for="username">Username or Email</label>
+                        <input type="text" id="username" name="username" placeholder="Enter username or email" required>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">Send Request</button>
+                        <button type="button" class="btn btn-secondary" style="flex: 1;"
+                            onclick="closeAddFriendModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            function openAddFriendModal() {
+                document.getElementById('addFriendModal').style.display = 'flex';
+            }
+
+            function closeAddFriendModal() {
+                document.getElementById('addFriendModal').style.display = 'none';
+            }
+
+            // Close modal when clicking outside
+            document.getElementById('addFriendModal').addEventListener('click', function (e) {
+                if (e.target === this) {
+                    closeAddFriendModal();
+                }
+            });
+        </script>
+
+        <%- include('partials/footer') %>

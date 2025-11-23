@@ -24,6 +24,16 @@ const {
   calendarDayLogic,
   calendarGridLogic,
 } = require("./logic/calendar");
+const {
+  checkUsername,
+  sendFriendRequest,
+  getPendingRequests,
+  getOutgoingRequests,
+  getAcceptedFriends,
+  acceptFriendship,
+  declineFriendship,
+  cancelFriendship
+} = require("./logic/friends");
 const getEventHistorySQL = require("../sql/events/getEventHistory");
 
 router.get("/", homeLogic);
@@ -88,6 +98,15 @@ router.get("/friends", (req, res) => {
     activePage: "friends",
   });
 });
+
+router.get("/friends/check-username", checkUsername);
+router.post("/friends/request", sendFriendRequest);
+router.get("/friends/pending", getPendingRequests);
+router.get("/friends/outgoing", getOutgoingRequests);
+router.get("/friends/accepted", getAcceptedFriends);
+router.post("/friends/accept/:id", acceptFriendship);
+router.post("/friends/decline/:id", declineFriendship);
+router.post("/friends/cancel/:id", cancelFriendship);
 
 router.use((req, res) => {
   res.status(404).render("404", {

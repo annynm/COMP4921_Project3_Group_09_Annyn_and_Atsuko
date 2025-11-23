@@ -10,92 +10,24 @@
 
             <div class="events-grid">
                 <div class="event-column">
-                    <h2>Accepted</h2>
-                    <% if (typeof acceptedFriends !=='undefined' && acceptedFriends.length> 0) { %>
-                        <% acceptedFriends.forEach(friend=> { %>
-                            <div class="glass-card event-card">
-                                <h3>
-                                    <%= friend.fname %>
-                                        <%= friend.lname %>
-                                </h3>
-                                <div class="event-meta">
-                                    <p><strong>Username:</strong>
-                                        <%= friend.user_name %>
-                                    </p>
-                                    <p><strong>Email:</strong>
-                                        <%= friend.email %>
-                                    </p>
-                                </div>
-                                <span class="event-status status-attending">Friend</span>
-                            </div>
-                            <% }); %>
-                                <% } else { %>
-                                    <p style="text-align: center; color: var(--text-secondary);">No friends yet</p>
-                                    <% } %>
+                    <h2>Your Friends</h2>
+                    <div id="acceptedFriendsContainer">
+                        <p style="text-align: center; color: var(--text-secondary);">Loading...</p>
+                    </div>
                 </div>
 
                 <div class="event-column">
                     <h2>Pending</h2>
-                    <% if (typeof pendingRequests !=='undefined' && pendingRequests.length> 0) { %>
-                        <% pendingRequests.forEach(request=> { %>
-                            <div class="glass-card event-card">
-                                <h3>
-                                    <%= request.fname %>
-                                        <%= request.lname %>
-                                </h3>
-                                <div class="event-meta">
-                                    <p><strong>Username:</strong>
-                                        <%= request.user_name %>
-                                    </p>
-                                </div>
-                                <span class="event-status status-upcoming">Pending</span>
-                                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                                    <form action="/friends/accept/<%= request.friendship_id %>" method="POST"
-                                        style="flex: 1;">
-                                        <button type="submit" class="btn btn-primary"
-                                            style="width: 100%; padding: 0.5rem;">Accept</button>
-                                    </form>
-                                    <form action="/friends/decline/<%= request.friendship_id %>" method="POST"
-                                        style="flex: 1;">
-                                        <button type="submit" class="btn btn-danger"
-                                            style="width: 100%; padding: 0.5rem;">Decline</button>
-                                    </form>
-                                </div>
-                            </div>
-                            <% }); %>
-                                <% } else { %>
-                                    <p style="text-align: center; color: var(--text-secondary);">No pending requests</p>
-                                    <% } %>
+                    <div id="pendingRequestsContainer">
+                        <p style="text-align: center; color: var(--text-secondary);">Loading...</p>
+                    </div>
                 </div>
 
                 <div class="event-column">
                     <h2>Request Outgoing</h2>
-                    <% if (typeof outgoingRequests !=='undefined' && outgoingRequests.length> 0) { %>
-                        <% outgoingRequests.forEach(request=> { %>
-                            <div class="glass-card event-card">
-                                <h3>
-                                    <%= request.fname %>
-                                        <%= request.lname %>
-                                </h3>
-                                <div class="event-meta">
-                                    <p><strong>Username:</strong>
-                                        <%= request.user_name %>
-                                    </p>
-                                </div>
-                                <span class="event-status status-upcoming">Waiting</span>
-                                <form action="/friends/cancel/<%= request.friendship_id %>" method="POST"
-                                    style="margin-top: 0.5rem;">
-                                    <button type="submit" class="btn btn-secondary"
-                                        style="width: 100%; padding: 0.5rem;"
-                                        onsubmit="return confirm('Are you sure you want to cancel this friend request?');">Cancel
-                                        Request</button>
-                                </form>
-                            </div>
-                            <% }); %>
-                                <% } else { %>
-                                    <p style="text-align: center; color: var(--text-secondary);">No outgoing requests
-                                    </p>
-                                    <% } %>
+                    <div id="outgoingRequestsContainer">
+                        <p style="text-align: center; color: var(--text-secondary);">Loading...</p>
+                    </div>
                 </div>
 
             </div>
@@ -104,15 +36,19 @@
         <!-- Add Friend Modal -->
         <div id="addFriendModal"
             style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 2000; align-items: center; justify-content: center;">
-            <div class="glass-card" style="max-width: 400px; width: 90%; position: relative;">
+            <div class="glass-card"
+                style="max-width: 400px; width: 90%; position: relative; background: rgba(255, 255, 255, 1);">
                 <button onclick="closeAddFriendModal()"
                     style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-primary);">&times;</button>
-                <h2 style="color: var(--greendale-blue-dark); margin-bottom: 1.5rem;">Add New Friend</h2>
-                <form action="/friends/request" method="POST" class="login-form" style="max-width: 100%;">
+                <h2 style="color: var(--greendale-blue-dark); margin-bottom: 1.5rem;">Send a friend request</h2>
+                <form id="friendRequestForm" class="login-form" style="max-width: 100%;">
                     <div class="form-group">
-                        <label for="username">Username or Email</label>
-                        <input type="text" id="username" name="username" placeholder="Enter username or email" required>
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" placeholder="Enter username" required>
+                        <div id="usernameMessage" style="margin-top: 0.5rem; font-size: 0.9rem; min-height: 1.2rem;">
+                        </div>
                     </div>
+                    <div id="submitMessage" style="margin-top: 0.5rem; font-size: 0.9rem; min-height: 1.2rem;"></div>
                     <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
                         <button type="submit" class="btn btn-primary" style="flex: 1;">Send Request</button>
                         <button type="button" class="btn btn-secondary" style="flex: 1;"
@@ -123,18 +59,333 @@
         </div>
 
         <script>
+            let checkUsernameTimeout;
+
+            // Load pending, outgoing requests, and accepted friends on page load
+            async function loadFriendRequests() {
+                await Promise.all([
+                    loadAcceptedFriends(),
+                    loadPendingRequests(),
+                    loadOutgoingRequests()
+                ]);
+            }
+
+            // Load accepted friends
+            async function loadAcceptedFriends() {
+                try {
+                    const response = await fetch('/friends/accepted');
+                    const data = await response.json();
+                    const container = document.getElementById('acceptedFriendsContainer');
+
+                    if (data.success && data.friends.length > 0) {
+                        container.innerHTML = data.friends.map(friend => `
+                            <div class="glass-card event-card">
+                                <h3>${escapeHtml(friend.fname)} ${escapeHtml(friend.lname)}</h3>
+                                <div class="event-meta">
+                                    <p><strong>Username:</strong> ${escapeHtml(friend.user_name)}</p>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No friends yet</p>';
+                    }
+                } catch (error) {
+                    console.error('Error loading accepted friends:', error);
+                    document.getElementById('acceptedFriendsContainer').innerHTML =
+                        '<p style="text-align: center; color: var(--error);">Error loading accepted friends</p>';
+                }
+            }
+
+            // Load pending requests (received by user)
+            async function loadPendingRequests() {
+                try {
+                    const response = await fetch('/friends/pending');
+                    const data = await response.json();
+                    const container = document.getElementById('pendingRequestsContainer');
+
+                    if (data.success && data.requests.length > 0) {
+                        container.innerHTML = data.requests.map(request => `
+                            <div class="glass-card event-card">
+                                <h3>${escapeHtml(request.fname)} ${escapeHtml(request.lname)}</h3>
+                                <div class="event-meta">
+                                    <p><strong>Username:</strong> ${escapeHtml(request.user_name)}</p>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <form class="accept-friendship-form" data-friendship-id="${request.friendship_id}" data-username="${escapeHtml(request.user_name)}" style="flex: 1;">
+                                        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.25rem 0.5rem; font-size: 0.875rem;">Accept</button>
+                                    </form>
+                                    <form class="decline-friendship-form" data-friendship-id="${request.friendship_id}" data-username="${escapeHtml(request.user_name)}" style="flex: 1;">
+                                        <button type="submit" class="btn btn-danger" style="width: 100%; padding: 0.25rem 0.5rem; font-size: 0.875rem;">Decline</button>
+                                    </form>
+                                </div>
+                            </div>
+                        `).join('');
+
+                        // Add event listeners to forms
+                        container.querySelectorAll('.accept-friendship-form').forEach(form => {
+                            form.addEventListener('submit', handleAcceptFriendship);
+                        });
+                        container.querySelectorAll('.decline-friendship-form').forEach(form => {
+                            form.addEventListener('submit', handleDeclineFriendship);
+                        });
+                    } else {
+                        container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No pending requests</p>';
+                    }
+                } catch (error) {
+                    console.error('Error loading pending requests:', error);
+                    document.getElementById('pendingRequestsContainer').innerHTML =
+                        '<p style="text-align: center; color: var(--error);">Error loading pending requests</p>';
+                }
+            }
+
+            // Load outgoing requests (sent by user)
+            async function loadOutgoingRequests() {
+                try {
+                    const response = await fetch('/friends/outgoing');
+                    const data = await response.json();
+                    const container = document.getElementById('outgoingRequestsContainer');
+
+                    if (data.success && data.requests.length > 0) {
+                        container.innerHTML = data.requests.map(request => `
+                            <div class="glass-card event-card">
+                                <h3>${escapeHtml(request.fname)} ${escapeHtml(request.lname)}</h3>
+                                <div class="event-meta">
+                                    <p><strong>Username:</strong> ${escapeHtml(request.user_name)}</p>
+                                </div>
+                                <form class="cancel-friendship-form" data-friendship-id="${request.friendship_id}" data-username="${escapeHtml(request.user_name)}" style="margin-top: 0.5rem;">
+                                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.25rem 0.5rem; font-size: 0.875rem;">Cancel Request</button>
+                                </form>
+                            </div>
+                        `).join('');
+
+                        // Add event listeners to forms
+                        container.querySelectorAll('.cancel-friendship-form').forEach(form => {
+                            form.addEventListener('submit', handleCancelFriendship);
+                        });
+                    } else {
+                        container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No outgoing requests</p>';
+                    }
+                } catch (error) {
+                    console.error('Error loading outgoing requests:', error);
+                    document.getElementById('outgoingRequestsContainer').innerHTML =
+                        '<p style="text-align: center; color: var(--error);">Error loading outgoing requests</p>';
+                }
+            }
+
+            // Helper function to escape HTML
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            // Handle accept friendship request
+            async function handleAcceptFriendship(e) {
+                e.preventDefault();
+                const form = e.target;
+                const friendshipId = form.dataset.friendshipId;
+                const username = form.dataset.username;
+
+                try {
+                    const response = await fetch(`/friends/accept/${friendshipId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        alert(`Friend request from ${username} has been accepted!`);
+                        window.location.reload();
+                    } else {
+                        alert(`Error: ${data.message || 'Failed to accept friend request'}`);
+                    }
+                } catch (error) {
+                    console.error('Error accepting friend request:', error);
+                    alert('An error occurred while accepting the friend request');
+                }
+            }
+
+            // Handle decline friendship request
+            async function handleDeclineFriendship(e) {
+                e.preventDefault();
+                const form = e.target;
+                const friendshipId = form.dataset.friendshipId;
+                const username = form.dataset.username;
+
+                try {
+                    const response = await fetch(`/friends/decline/${friendshipId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        alert(`Friend request from ${username} has been declined.`);
+                        window.location.reload();
+                    } else {
+                        alert(`Error: ${data.message || 'Failed to decline friend request'}`);
+                    }
+                } catch (error) {
+                    console.error('Error declining friend request:', error);
+                    alert('An error occurred while declining the friend request');
+                }
+            }
+
+            // Handle cancel friendship request
+            async function handleCancelFriendship(e) {
+                e.preventDefault();
+                const form = e.target;
+                const friendshipId = form.dataset.friendshipId;
+                const username = form.dataset.username;
+
+                if (!confirm(`Are you sure you want to cancel the friend request to ${username}?`)) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/friends/cancel/${friendshipId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        alert(`Friend request to ${username} has been cancelled.`);
+                        window.location.reload();
+                    } else {
+                        alert(`Error: ${data.message || 'Failed to cancel friend request'}`);
+                    }
+                } catch (error) {
+                    console.error('Error cancelling friend request:', error);
+                    alert('An error occurred while cancelling the friend request');
+                }
+            }
+
+            // Load requests when page loads
+            document.addEventListener('DOMContentLoaded', loadFriendRequests);
+
             function openAddFriendModal() {
                 document.getElementById('addFriendModal').style.display = 'flex';
+                // Reset form and messages
+                document.getElementById('friendRequestForm').reset();
+                document.getElementById('usernameMessage').textContent = '';
+                document.getElementById('submitMessage').textContent = '';
             }
 
             function closeAddFriendModal() {
                 document.getElementById('addFriendModal').style.display = 'none';
+                // Reset form and messages
+                document.getElementById('friendRequestForm').reset();
+                document.getElementById('usernameMessage').textContent = '';
+                document.getElementById('submitMessage').textContent = '';
             }
 
             // Close modal when clicking outside
             document.getElementById('addFriendModal').addEventListener('click', function (e) {
                 if (e.target === this) {
                     closeAddFriendModal();
+                }
+            });
+
+            // Username input validation
+            const usernameInput = document.getElementById('username');
+            const usernameMessage = document.getElementById('usernameMessage');
+
+            usernameInput.addEventListener('keyup', function () {
+                const username = this.value.trim();
+
+                // Clear previous timeout
+                clearTimeout(checkUsernameTimeout);
+
+                // Clear message if input is empty
+                if (username === '') {
+                    usernameMessage.textContent = '';
+                    usernameMessage.style.color = '';
+                    return;
+                }
+
+                // Debounce: wait 500ms after user stops typing
+                checkUsernameTimeout = setTimeout(async () => {
+                    try {
+                        const response = await fetch(`/friends/check-username?username=${encodeURIComponent(username)}`);
+                        const data = await response.json();
+
+                        if (data.exists) {
+                            usernameMessage.textContent = '✓ User found';
+                            usernameMessage.style.color = 'var(--success)';
+                        } else {
+                            usernameMessage.textContent = data.message || '✗ User not found';
+                            usernameMessage.style.color = 'var(--error)';
+                        }
+                    } catch (error) {
+                        console.error('Error checking username:', error);
+                        usernameMessage.textContent = 'Error checking username';
+                        usernameMessage.style.color = 'var(--error)';
+                    }
+                }, 500);
+            });
+
+            // Form submission
+            document.getElementById('friendRequestForm').addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const username = document.getElementById('username').value.trim();
+                const submitMessage = document.getElementById('submitMessage');
+                const submitButton = e.target.querySelector('button[type="submit"]');
+
+                if (!username) {
+                    submitMessage.textContent = 'Please enter a username';
+                    submitMessage.style.color = 'var(--error)';
+                    return;
+                }
+
+                // Disable submit button
+                submitButton.disabled = true;
+                submitButton.textContent = 'Sending...';
+                submitMessage.textContent = '';
+
+                try {
+                    const response = await fetch('/friends/request', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ username: username })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        submitMessage.textContent = '✓ ' + data.message;
+                        submitMessage.style.color = 'var(--success)';
+
+                        // Reset form after 2 seconds and close modal
+                        setTimeout(() => {
+                            closeAddFriendModal();
+                            // Reload page to show updated friend requests
+                            window.location.reload();
+                        }, 2000);
+                    } else {
+                        submitMessage.textContent = '✗ ' + data.message;
+                        submitMessage.style.color = 'var(--error)';
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Send Request';
+                    }
+                } catch (error) {
+                    console.error('Error sending friend request:', error);
+                    submitMessage.textContent = '✗ Failed to send friend request';
+                    submitMessage.style.color = 'var(--error)';
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Send Request';
                 }
             });
         </script>

@@ -75,7 +75,7 @@ router.get("/calendar/grid", calendarGridLogic);
 router.get("/events/history", async (req, res) => {
   try {
     const result = await pool.query(getEventHistorySQL(req.session.user.id));
-    res.render("event-history", {
+    res.render("history", {
       title: "Event History",
       user: req.session.user,
       activePage: "events",

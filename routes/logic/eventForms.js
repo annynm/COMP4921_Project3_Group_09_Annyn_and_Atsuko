@@ -268,4 +268,35 @@ const deleteEventPost = async (req, res) => {
   }
 };
 
-module.exports = { bookEventGet, createEventPost, editEventGet, editEventPost, deleteEventPost };
+const restoreEventPost = async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const userId = req.session.user.id;
+
+    const restoreEventSQL = require("../../sql/events/restoreEvent");
+    const result = await pool.query(restoreEventSQL(eventId, userId));
+
+    if (!result.rows[0]) {
+      return res.status(403).render("error", {
+        title: "Access Denied",
+        user: req.session.user,
+        error: "You do not have permission to restore this event, or the event does not exist",
+      });
+    }
+
+    return res.redirect("/events/deleted");
+  } catch (error) {
+    console.error("Error restoring event:", error);
+    return res.status(500).render("error", {
+      title: "Error",
+      user: req.session.user,
+      error: "Failed to restore event",
+      errorDetails: {
+        message: error.message,
+        stack: error.stack,
+      },
+    });
+  }
+};
+
+module.exports = { bookEventGet, createEventPost, editEventGet, editEventPost, deleteEventPost, restoreEventPost };

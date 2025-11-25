@@ -18,6 +18,7 @@ const {
   editEventPost,
   createEventPost,
   deleteEventPost,
+  restoreEventPost,
 } = require("./logic/eventForms");
 const {
   calendarPageLogic,
@@ -34,6 +35,7 @@ const {
   declineFriendship,
   cancelFriendship
 } = require("./logic/friends");
+const { cleanupDeletedEvents } = require("./logic/cleanup");
 const getEventHistorySQL = require("../sql/events/getEventHistory");
 
 router.get("/", homeLogic);
@@ -67,6 +69,7 @@ router.get("/event/:id/edit", editEventGet);
 router.post("/events/book", createEventPost);
 router.post("/event/:id/edit", editEventPost);
 router.post("/event/:id/delete", deleteEventPost);
+router.post("/event/:id/restore", restoreEventPost);
 
 router.get("/calendar", calendarPageLogic);
 router.get("/calendar/api", calendarDayLogic);
@@ -91,6 +94,28 @@ router.get("/events/history", async (req, res) => {
   }
 });
 
+router.get("/events/deleted", async (req, res) => {
+  try {
+    const getDeletedEventsSQL = require("../sql/events/getDeletedEvents");
+    const result = await pool.query(getDeletedEventsSQL(req.session.user.id));
+
+    // deleted_at_vancouver is already formatted in SQL query
+    res.render("deleted-events", {
+      title: "Deleted Events",
+      user: req.session.user,
+      activePage: "events",
+      events: result.rows,
+    });
+  } catch (error) {
+    console.error("Deleted events error:", error);
+    res.status(500).render("error", {
+      title: "Error",
+      user: req.session.user,
+      error: "Failed to load deleted events",
+    });
+  }
+});
+
 router.get("/friends", (req, res) => {
   res.render("friends", {
     title: "Friends",
@@ -107,6 +132,11 @@ router.get("/friends/accepted", getAcceptedFriends);
 router.post("/friends/accept/:id", acceptFriendship);
 router.post("/friends/decline/:id", declineFriendship);
 router.post("/friends/cancel/:id", cancelFriendship);
+
+// Development only: Manual cleanup endpoint
+if (process.env.NODE_ENV === 'development') {
+  router.post("/admin/cleanup-deleted-events", cleanupDeletedEvents);
+}
 
 router.use((req, res) => {
   res.status(404).render("404", {

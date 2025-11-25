@@ -7,6 +7,9 @@ const { pool } = require("./config/database");
 const { store } = require("./config/session");
 const router = require("./routes/router");
 
+// Initialize scheduled jobs
+require("./jobs/cleanupDeletedEvents");
+
 const app = express();
 const PORT = process.env.PORT || 3004;
 

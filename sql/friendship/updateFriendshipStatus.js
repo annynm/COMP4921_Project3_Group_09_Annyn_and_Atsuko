@@ -15,7 +15,7 @@ module.exports = (friendshipId, receiverId, newStatus) => ({
 module.exports.cancel = (friendshipId, requestorId) => ({
     text: `
         UPDATE friendship
-        SET status = 'blocked'
+        SET status = 'cancelled'
         WHERE friendship_id = $1
           AND requestor_id = $2
           AND status = 'pending'

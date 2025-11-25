@@ -84,7 +84,7 @@ const sendFriendRequest = async (req, res) => {
                 });
             }
             // If status is 'blocked' or 'declined', update the existing record to 'pending'
-            if (existing.status === 'blocked' || existing.status === 'declined') {
+            if (existing.status === 'blocked' || existing.status === 'declined' || existing.status === 'cancelled') {
                 const updateResult = await pool.query(
                     updateFriendshipToPendingSQL(existing.friendship_id, requestorId, receiverId)
                 );

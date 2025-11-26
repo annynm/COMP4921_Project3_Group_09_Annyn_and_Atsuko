@@ -54,6 +54,11 @@ router.get("/logout", logout);
 router.get("/register", registerGet);
 router.post("/register", registerPost);
 
+// Development only: Manual cleanup endpoint
+if (process.env.NODE_ENV === 'development') {
+  router.post("/admin/cleanup-deleted-events", cleanupDeletedEvents);
+}
+
 router.use((req, res, next) => {
   if (!req.session.user) {
     return res.redirect("/login");
@@ -132,11 +137,6 @@ router.get("/friends/accepted", getAcceptedFriends);
 router.post("/friends/accept/:id", acceptFriendship);
 router.post("/friends/decline/:id", declineFriendship);
 router.post("/friends/cancel/:id", cancelFriendship);
-
-// Development only: Manual cleanup endpoint
-if (process.env.NODE_ENV === 'development') {
-  router.post("/admin/cleanup-deleted-events", cleanupDeletedEvents);
-}
 
 router.use((req, res) => {
   res.status(404).render("404", {

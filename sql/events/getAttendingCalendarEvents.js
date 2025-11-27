@@ -14,8 +14,8 @@ module.exports = (userId, year, month) => ({
         AND e.is_cancelled = FALSE
         AND rsvp.user_id = $1 
         AND rsvp.status = 'accepted'
-        AND EXTRACT(YEAR FROM (e.start_datetime AT TIME ZONE 'UTC')) = $2
-        AND EXTRACT(MONTH FROM (e.start_datetime AT TIME ZONE 'UTC')) = $3
+        AND EXTRACT(YEAR FROM e.start_datetime) = $2
+        AND EXTRACT(MONTH FROM e.start_datetime) = $3
         ORDER BY e.start_datetime ASC
     `,
     values: [userId, year, month],

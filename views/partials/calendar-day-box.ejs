@@ -21,11 +21,13 @@ const eventsByDate = {};
 if (typeof events !== 'undefined' && events !== null) {
     events.forEach(event => {
         try {
-            const eventDate = new Date(event.start_datetime + 'Z');
-            const utcDateStr = eventDate.toISOString().split('T')[0];
+            const eventDate = new Date(event.start_datetime);
+            const dateStr = eventDate.getFullYear() + '-' + 
+                           String(eventDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                           String(eventDate.getDate()).padStart(2, '0');
             
-            if (!eventsByDate[utcDateStr]) eventsByDate[utcDateStr] = [];
-            eventsByDate[utcDateStr].push(event);
+            if (!eventsByDate[dateStr]) eventsByDate[dateStr] = [];
+            eventsByDate[dateStr].push(event);
         } catch (error) {
             console.error('Error processing event:', event, error);
         }
@@ -39,7 +41,9 @@ Object.keys(eventsByDate).forEach(date => {
 });
 
 const today = new Date();
-const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())).toISOString().split('T')[0];
+const todayStr = today.getFullYear() + '-' + 
+                String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                String(today.getDate()).padStart(2, '0');
 %>
 
 <%
@@ -56,7 +60,7 @@ dayHeaders.forEach(day => { %>
 days.forEach(day => {
     const dateStr = formatDate(year, month, day);
     const dayEvents = eventsByDate[dateStr] || [];
-    const isToday = dateStr === todayUTC;
+    const isToday = dateStr === todayStr;
 %>
 
 <div class="calendar-day <%= isToday ? 'today' : '' %>"
@@ -76,17 +80,8 @@ days.forEach(day => {
                 const start = new Date(event.start_datetime);
                 const end = new Date(event.end_datetime);
 
-                const startTime = start.toLocaleTimeString([], {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true
-                });
-
-                const endTime = end.toLocaleTimeString([], {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true
-                });
+                const startTime = start.getHours().toString().padStart(2, '0') + ':' + start.getMinutes().toString().padStart(2, '0');
+                const endTime = end.getHours().toString().padStart(2, '0') + ':' + end.getMinutes().toString().padStart(2, '0');
 
                 const eventColor = event.color || 'var(--greendale-blue-light)';
             %>

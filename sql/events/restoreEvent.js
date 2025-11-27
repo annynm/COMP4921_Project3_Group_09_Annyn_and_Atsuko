@@ -1,4 +1,3 @@
-// Restore deleted event (set is_deleted = FALSE) with admin permission check
 module.exports = (eventId, userId) => ({
     text: `
         UPDATE event
@@ -16,4 +15,3 @@ module.exports = (eventId, userId) => ({
     `,
     values: [eventId, userId],
 });
-

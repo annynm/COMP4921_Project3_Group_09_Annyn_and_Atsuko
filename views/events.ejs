@@ -20,11 +20,10 @@
                             </h3>
                             <div class="event-meta">
                                 <p><strong>Date:</strong>
-                                    <%= new Date(event.start_datetime).toLocaleDateString() %>
+                                    <%= new Date(event.start_datetime).toUTCString().slice(0, 16) %>
                                 </p>
                                 <p><strong>Time:</strong>
-                                    <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit' ,
-                                        minute:'2-digit'}) %>
+                                    <%= new Date(event.start_datetime).getUTCHours().toString().padStart(2, '0') %>:<%= new Date(event.start_datetime).getUTCMinutes().toString().padStart(2, '0') %> UTC
                                 </p>
                                 <p><strong>Capacity:</strong>
                                     <%= event.capacity_display %>
@@ -54,11 +53,10 @@
                             </h3>
                             <div class="event-meta">
                                 <p><strong>Date:</strong>
-                                    <%= new Date(event.start_datetime).toLocaleDateString() %>
+                                    <%= new Date(event.start_datetime).toUTCString().slice(0, 16) %>
                                 </p>
                                 <p><strong>Time:</strong>
-                                    <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit' ,
-                                        minute:'2-digit'}) %>
+                                    <%= new Date(event.start_datetime).getUTCHours().toString().padStart(2, '0') %>:<%= new Date(event.start_datetime).getUTCMinutes().toString().padStart(2, '0') %> UTC
                                 </p>
                                 <p><strong>Capacity:</strong>
                                     <%= event.capacity_display %>
@@ -84,11 +82,10 @@
                             </h3>
                             <div class="event-meta">
                                 <p><strong>Date:</strong>
-                                    <%= new Date(event.start_datetime).toLocaleDateString() %>
+                                    <%= new Date(event.start_datetime).toUTCString().slice(0, 16) %>
                                 </p>
                                 <p><strong>Time:</strong>
-                                    <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit' ,
-                                        minute:'2-digit'}) %>
+                                    <%= new Date(event.start_datetime).getUTCHours().toString().padStart(2, '0') %>:<%= new Date(event.start_datetime).getUTCMinutes().toString().padStart(2, '0') %> UTC
                                 </p>
                                 <p><strong>Capacity:</strong>
                                     <%= event.capacity_display %>

@@ -2,12 +2,11 @@
     <%- include('partials/nav', { activePage: 'events' , user: user }) %>
 
         <% 
-        // Helper for date/time formatting 
         function formatDateTimeLocal(dateStr) {
             if (!dateStr) return '' ; 
             const date=new Date(dateStr); const pad=(n)=> n.toString().padStart(2, '0');
-            return `${date.getFullYear()}-${pad(date.getMonth() +
-            1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+            return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() +
+            1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
             }
         %>
 
@@ -31,13 +30,13 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="start_datetime">Start Date & Time</label>
+                            <label for="start_datetime">Start Date & Time (UTC)</label>
                             <input type="datetime-local" id="start_datetime" name="start_datetime"
                                 value="<%= formatDateTimeLocal(formData.start_datetime) %>" required>
                         </div>
 
                         <div class="form-group">
-                            <label for="end_datetime">End Date & Time</label>
+                            <label for="end_datetime">End Date & Time (UTC)</label>
                             <input type="datetime-local" id="end_datetime" name="end_datetime"
                                 value="<%= formatDateTimeLocal(formData.end_datetime) %>" required>
                         </div>
@@ -98,10 +97,8 @@
                 const picker = document.getElementById("color");
                 const preview = document.getElementById("colorPreview");
 
-                // set initial color
                 preview.style.backgroundColor = picker.value;
 
-                // update preview when color changes
                 picker.addEventListener("input", () => {
                     preview.style.backgroundColor = picker.value;
                 });

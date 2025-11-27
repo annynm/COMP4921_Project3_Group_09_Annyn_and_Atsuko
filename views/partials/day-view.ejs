@@ -8,7 +8,7 @@
             const quarter2 = hourStart + 45;
             %>
             <div class="hour-slot" data-hour="<%= hour %>">
-                <div class="hour-label"><%= hour %>:00</div>
+                <div class="hour-label"><%= hour.toString().padStart(2, '0') %>:00</div>
                 <div class="half-hour" data-time="<%= quarter1 %>"></div>
                 <div class="quarter-hour" data-time="<%= quarter1 %>"></div>
                 <div class="quarter-hour" data-time="<%= quarter2 %>"></div>
@@ -32,8 +32,8 @@
                  onclick="window.location.href='/event/<%= event.event_id %>'">
                 <div class="event-overlay-name"><%= event.event_name %></div>
                 <div class="event-overlay-time">
-                    <%= start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %> - 
-                    <%= end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>
+                    <%= start.getHours().toString().padStart(2, '0') %>:<%= start.getMinutes().toString().padStart(2, '0') %> - 
+                    <%= end.getHours().toString().padStart(2, '0') %>:<%= end.getMinutes().toString().padStart(2, '0') %>
                 </div>
                 <% if (event.room_name) { %>
                     <div class="event-overlay-room"><%= event.room_name %></div>

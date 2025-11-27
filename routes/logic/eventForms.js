@@ -8,9 +8,9 @@ const bookEventGet = async (req, res) => {
 
     if (date) {
       const dateObj = new Date(date);
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
+      const year = dateObj.getUTCFullYear();
+      const month = String(dateObj.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getUTCDate()).padStart(2, "0");
       const h = hour ? String(hour).padStart(2, "0") : "12";
       const m = minute ? String(minute).padStart(2, "0") : "00";
 
@@ -71,15 +71,12 @@ const createEventPost = async (req, res) => {
       return res.status(400).send("Missing required fields");
     }
 
-    const startDate = new Date(start_datetime);
-    const endDate = new Date(end_datetime);
-
-    const startUTC = startDate.toISOString();
-    const endUTC = endDate.toISOString();
+    const startUTC = start_datetime + ":00Z";
+    const endUTC = end_datetime + ":00Z";
 
     console.log("Creating event with times:");
-    console.log("Local start:", start_datetime, "UTC start:", startUTC);
-    console.log("Local end:", end_datetime, "UTC end:", endUTC);
+    console.log("Form start:", start_datetime, "UTC start:", startUTC);
+    console.log("Form end:", end_datetime, "UTC end:", endUTC);
 
     const createdEvent = await Event.create({
       event_name: event_name,
@@ -91,6 +88,10 @@ const createEventPost = async (req, res) => {
       is_all_day: is_all_day,
       start_datetime: startUTC,
       end_datetime: endUTC,
+      privacy_type: privacy_type || "public",
+      max_capacity: max_capacity ? Number(max_capacity) : null,
+      allow_friend_invites:
+        allow_friend_invites === "on" || allow_friend_invites === true,
     });
 
     const eventId = createdEvent.event_id;
@@ -136,6 +137,13 @@ const editEventGet = async (req, res) => {
       "SELECT room_id, room_name, capacity FROM rooms ORDER BY room_name",
     );
 
+    const formatForForm = (dateValue) => {
+      if (!dateValue) return "";
+      const date = new Date(dateValue);
+      const pad = (n) => n.toString().padStart(2, "0");
+      return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
+    };
+
     res.render("event-form", {
       title: "Edit Event",
       user: req.session.user,
@@ -146,8 +154,8 @@ const editEventGet = async (req, res) => {
       formData: {
         event_name: event.event_name,
         event_description: event.event_description,
-        start_datetime: event.start_datetime,
-        end_datetime: event.end_datetime,
+        start_datetime: formatForForm(event.start_datetime),
+        end_datetime: formatForForm(event.end_datetime),
         room_id: event.room_id,
         color: event.color,
         is_all_day: event.is_all_day,
@@ -203,15 +211,12 @@ const editEventPost = async (req, res) => {
       return res.status(400).send("Missing required fields");
     }
 
-    const startDate = new Date(start_datetime);
-    const endDate = new Date(end_datetime);
-
-    const startUTC = startDate.toISOString();
-    const endUTC = endDate.toISOString();
+    const startUTC = start_datetime + ":00Z";
+    const endUTC = end_datetime + ":00Z";
 
     console.log("Updating event with times:");
-    console.log("Local start:", start_datetime, "UTC start:", startUTC);
-    console.log("Local end:", end_datetime, "UTC end:", endUTC);
+    console.log("Form start:", start_datetime, "UTC start:", startUTC);
+    console.log("Form end:", end_datetime, "UTC end:", endUTC);
 
     await Event.update(eventId, {
       event_name,

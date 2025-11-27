@@ -7,25 +7,23 @@ const calendarPageLogic = async (req, res) => {
     const userId = req.session.user.id;
     const now = new Date();
 
-    // Accept month as 1-12 in the URL. Internally we use 0-11 for templates/Date().
     let year = parseInt(req.query.year, 10);
-    const monthParam = req.query.month; // expected 1..12 or undefined
+    const monthParam = req.query.month;
 
     if (isNaN(year)) year = now.getFullYear();
 
-    let month; // 0-11 internally
+    let month;
     if (typeof monthParam === "undefined") {
       month = now.getMonth();
     } else {
       const parsedMonth = parseInt(monthParam, 10);
-      // Reject month=0 and out-of-range values
       if (isNaN(parsedMonth) || parsedMonth < 1 || parsedMonth > 12) {
         return res.status(400).json({ error: "Invalid month (must be 1-12)" });
       }
-      month = parsedMonth - 1; // normalize to 0-11
+      month = parsedMonth - 1;
     }
 
-    const sqlMonth = month + 1; // 1-12 for SQL
+    const sqlMonth = month + 1;
 
     const result = await pool.query(
       getAttendingCalendarEventsSQL(userId, year, sqlMonth),
@@ -36,7 +34,6 @@ const calendarPageLogic = async (req, res) => {
       user: req.session.user,
       activePage: "calendar",
       events: result.rows,
-      // Pass month as 0-based to templates (they expect 0-11)
       query: { year, month },
     });
   } catch (error) {
@@ -101,12 +98,11 @@ const calendarGridLogic = async (req, res) => {
 
     const monthParam = req.query.month;
 
-    // Validate year and month
     if (isNaN(year)) {
       return res.status(400).json({ error: "Invalid year" });
     }
 
-    let month; // internal 0-11
+    let month;
     if (typeof monthParam === "undefined") {
       month = new Date().getMonth();
     } else {
@@ -117,7 +113,7 @@ const calendarGridLogic = async (req, res) => {
       month = parsedMonth - 1;
     }
 
-    const sqlMonth = month + 1; // 1-12 for SQL
+    const sqlMonth = month + 1;
 
     const result = await pool.query(
       getAttendingCalendarEventsSQL(userId, year, sqlMonth),
@@ -126,7 +122,7 @@ const calendarGridLogic = async (req, res) => {
     res.render("partials/calendar-day-box", {
       events: result.rows,
       year: year,
-      month: month, // pass 0-based to partials
+      month: month,
       query: { year, month },
       layout: false,
     });

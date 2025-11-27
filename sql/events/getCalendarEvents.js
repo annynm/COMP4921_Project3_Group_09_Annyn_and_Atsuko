@@ -1,4 +1,3 @@
-// Get events for calendar view (monthly) with privacy filtering
 module.exports = (userId, year, month) => ({
     text: `
         WITH user_friends AS (

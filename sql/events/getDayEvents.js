@@ -1,4 +1,3 @@
-// Get all events for a specific day with privacy filtering
 module.exports = (userId, date) => ({
     text: `
         WITH user_friends AS (

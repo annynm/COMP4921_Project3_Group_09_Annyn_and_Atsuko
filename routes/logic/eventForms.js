@@ -51,7 +51,7 @@ const bookEventGet = async (req, res) => {
 const createEventPost = async (req, res) => {
   try {
     const user = req.session.user;
-    console.log(user)
+    console.log(user);
     const ownerId = user.id;
 
     const {
@@ -64,47 +64,50 @@ const createEventPost = async (req, res) => {
       is_all_day,
       privacy_type,
       max_capacity,
-      allow_friend_invites
+      allow_friend_invites,
     } = req.body;
 
     if (!event_name || !start_datetime || !end_datetime) {
       return res.status(400).send("Missing required fields");
     }
 
-    // DB INSERT
+    const startDate = new Date(start_datetime);
+    const endDate = new Date(end_datetime);
+
+    const startUTC = startDate.toISOString();
+    const endUTC = endDate.toISOString();
+
+    console.log("Creating event with times:");
+    console.log("Local start:", start_datetime, "UTC start:", startUTC);
+    console.log("Local end:", end_datetime, "UTC end:", endUTC);
+
     const createdEvent = await Event.create({
       event_name: event_name,
       owner_id: ownerId,
       event_description: event_description,
-      is_recurring: false, // false for now
+      is_recurring: false,
       room_id: room_id ? Number(room_id) : null,
-      color: color || "#4287f5", // default
+      color: color || "#4287f5",
       is_all_day: is_all_day,
-      start_datetime: start_datetime,
-      end_datetime: end_datetime,
-      // recurring_id: null // null for now
+      start_datetime: startUTC,
+      end_datetime: endUTC,
     });
 
     const eventId = createdEvent.event_id;
 
-    // register myself as admin
     const insertedEventAdmin = await Event.insertEventAdmin(eventId, ownerId);
-    console.log("inserted.")
-    console.log(`${insertedEventAdmin}`)
+    console.log("inserted.");
+    console.log(`${insertedEventAdmin}`);
 
-    // set owner as attending in RSVP
     const RSVP = await Event.upsertRSVP(eventId, ownerId, "accepted");
-    console.log(`upserted: ${RSVP}`)
+    console.log(`upserted: ${RSVP}`);
 
-
-    console.log("run this code")
+    console.log("run this code");
     return res.redirect("/events");
-
   } catch (err) {
     console.error("Error creating event: ", err);
     return res.status(500).send("Failed to create event");
   }
-
 };
 
 const editEventGet = async (req, res) => {
@@ -112,7 +115,6 @@ const editEventGet = async (req, res) => {
     const eventId = req.params.id;
     const userId = req.session.user.id;
 
-    // Check if user has admin permission
     const event = await Event.getForEdit(eventId, userId);
 
     if (!event) {
@@ -174,7 +176,6 @@ const editEventPost = async (req, res) => {
     const eventId = req.params.id;
     const userId = req.session.user.id;
 
-    // Check if user has admin permission
     const event = await Event.getForEdit(eventId, userId);
 
     if (!event || !event.can_edit) {
@@ -202,24 +203,44 @@ const editEventPost = async (req, res) => {
       return res.status(400).send("Missing required fields");
     }
 
-    // merge with the existing data
+    const startDate = new Date(start_datetime);
+    const endDate = new Date(end_datetime);
+
+    const startUTC = startDate.toISOString();
+    const endUTC = endDate.toISOString();
+
+    console.log("Updating event with times:");
+    console.log("Local start:", start_datetime, "UTC start:", startUTC);
+    console.log("Local end:", end_datetime, "UTC end:", endUTC);
+
     await Event.update(eventId, {
       event_name,
-      event_description: event_description !== undefined ? event_description : event.event_description,
+      event_description:
+        event_description !== undefined
+          ? event_description
+          : event.event_description,
       color: color || event.color || "#4287f5",
-      start_datetime,
-      end_datetime,
-      room_id: room_id ? Number(room_id) : (room_id === "" ? null : event.room_id),
-      is_all_day: is_all_day !== undefined
-        ? (is_all_day === "on" || is_all_day === true)
-        : event.is_all_day,
-      privacy_type: privacy_type || event.privacy_type || 'public',
+      start_datetime: startUTC,
+      end_datetime: endUTC,
+      room_id: room_id
+        ? Number(room_id)
+        : room_id === ""
+          ? null
+          : event.room_id,
+      is_all_day:
+        is_all_day !== undefined
+          ? is_all_day === "on" || is_all_day === true
+          : event.is_all_day,
+      privacy_type: privacy_type || event.privacy_type || "public",
       max_capacity: max_capacity
         ? Number(max_capacity)
-        : (max_capacity === "" ? null : event.max_capacity),
-      allow_friend_invites: allow_friend_invites !== undefined
-        ? (allow_friend_invites === "on" || allow_friend_invites === true)
-        : event.allow_friend_invites,
+        : max_capacity === ""
+          ? null
+          : event.max_capacity,
+      allow_friend_invites:
+        allow_friend_invites !== undefined
+          ? allow_friend_invites === "on" || allow_friend_invites === true
+          : event.allow_friend_invites,
     });
 
     return res.redirect(`/event/${eventId}`);
@@ -242,14 +263,14 @@ const deleteEventPost = async (req, res) => {
     const eventId = req.params.id;
     const userId = req.session.user.id;
 
-    // Check if user has admin permission and delete
     const result = await Event.delete(eventId, userId);
 
     if (!result) {
       return res.status(403).render("error", {
         title: "Access Denied",
         user: req.session.user,
-        error: "You do not have permission to delete this event, or the event does not exist",
+        error:
+          "You do not have permission to delete this event, or the event does not exist",
       });
     }
 
@@ -280,7 +301,8 @@ const restoreEventPost = async (req, res) => {
       return res.status(403).render("error", {
         title: "Access Denied",
         user: req.session.user,
-        error: "You do not have permission to restore this event, or the event does not exist",
+        error:
+          "You do not have permission to restore this event, or the event does not exist",
       });
     }
 
@@ -299,4 +321,11 @@ const restoreEventPost = async (req, res) => {
   }
 };
 
-module.exports = { bookEventGet, createEventPost, editEventGet, editEventPost, deleteEventPost, restoreEventPost };
+module.exports = {
+  bookEventGet,
+  createEventPost,
+  editEventGet,
+  editEventPost,
+  deleteEventPost,
+  restoreEventPost,
+};

@@ -14,7 +14,7 @@ module.exports = (userId, date) => ({
         AND e.is_cancelled = FALSE
         AND rsvp.user_id = $1 
         AND rsvp.status = 'accepted'
-        AND DATE(e.start_datetime) = $2
+        AND DATE(e.start_datetime AT TIME ZONE 'UTC') = $2::date
         ORDER BY e.start_datetime ASC
     `,
     values: [userId, date],

@@ -21,11 +21,11 @@ const eventsByDate = {};
 if (typeof events !== 'undefined' && events !== null) {
     events.forEach(event => {
         try {
-            const date = new Date(event.start_datetime)
-                .toISOString()
-                .split('T')[0];
-            if (!eventsByDate[date]) eventsByDate[date] = [];
-            eventsByDate[date].push(event);
+            const eventDate = new Date(event.start_datetime + 'Z');
+            const utcDateStr = eventDate.toISOString().split('T')[0];
+            
+            if (!eventsByDate[utcDateStr]) eventsByDate[utcDateStr] = [];
+            eventsByDate[utcDateStr].push(event);
         } catch (error) {
             console.error('Error processing event:', event, error);
         }
@@ -38,7 +38,8 @@ Object.keys(eventsByDate).forEach(date => {
     });
 });
 
-const today = new Date().toISOString().split('T')[0];
+const today = new Date();
+const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())).toISOString().split('T')[0];
 %>
 
 <%
@@ -55,7 +56,7 @@ dayHeaders.forEach(day => { %>
 days.forEach(day => {
     const dateStr = formatDate(year, month, day);
     const dayEvents = eventsByDate[dateStr] || [];
-    const isToday = dateStr === today;
+    const isToday = dateStr === todayUTC;
 %>
 
 <div class="calendar-day <%= isToday ? 'today' : '' %>"

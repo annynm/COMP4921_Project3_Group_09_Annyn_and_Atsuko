@@ -1,5 +1,7 @@
 const { pool } = require("../../config/database");
 const Event = require("../../models/Event");
+const checkRoomConflictSQL = require("../../sql/events/checkRoomConflict");
+const checkUserTimeConflictSQL = require("../../sql/events/checkUserTimeConflict");
 
 const bookEventGet = async (req, res) => {
   try {
@@ -33,6 +35,7 @@ const bookEventGet = async (req, res) => {
       isEditMode: false,
       formData: prefillData,
       rooms: rooms.rows,
+      warnings: [],
     });
   } catch (error) {
     console.error("Book event form error:", error);
@@ -71,12 +74,91 @@ const createEventPost = async (req, res) => {
       return res.status(400).send("Missing required fields");
     }
 
+    let roomCapacity = null;
+    if (room_id) {
+      const roomResult = await pool.query(
+        "SELECT capacity FROM rooms WHERE room_id = $1",
+        [room_id],
+      );
+      if (roomResult.rows.length > 0) {
+        roomCapacity = roomResult.rows[0].capacity;
+      }
+    }
+
+    let finalMaxCapacity = null;
+    if (max_capacity && max_capacity !== "") {
+      finalMaxCapacity = Number(max_capacity);
+
+      if (roomCapacity !== null && finalMaxCapacity > roomCapacity) {
+        return res.status(400).render("error", {
+          title: "Capacity Error",
+          user: req.session.user,
+          error: `Event capacity (${finalMaxCapacity}) cannot exceed room capacity (${roomCapacity})`,
+        });
+      }
+    } else if (roomCapacity !== null) {
+      finalMaxCapacity = roomCapacity;
+    }
+
     const startUTC = start_datetime + ":00Z";
     const endUTC = end_datetime + ":00Z";
 
     console.log("Creating event with times:");
     console.log("Form start:", start_datetime, "UTC start:", startUTC);
     console.log("Form end:", end_datetime, "UTC end:", endUTC);
+
+    const warnings = [];
+
+    if (room_id) {
+      const roomConflictResult = await pool.query(
+        checkRoomConflictSQL(room_id, startUTC, endUTC),
+      );
+
+      if (roomConflictResult.rows.length > 0) {
+        const conflict = roomConflictResult.rows[0];
+        const conflictStart = new Date(conflict.start_datetime);
+        const conflictEnd = new Date(conflict.end_datetime);
+        const conflictTime = `${conflictStart.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${conflictEnd.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+
+        warnings.push({
+          type: "room",
+          message: `Room is occupied by "${conflict.event_name}" from ${conflictTime}`,
+        });
+      }
+    }
+
+    const userTimeConflictResult = await pool.query(
+      checkUserTimeConflictSQL(ownerId, startUTC, endUTC),
+    );
+    if (userTimeConflictResult.rows.length > 0) {
+      const conflict = userTimeConflictResult.rows[0];
+      const conflictStart = new Date(conflict.start_datetime);
+      const conflictEnd = new Date(conflict.end_datetime);
+      const conflictTime = `${conflictStart.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${conflictEnd.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+
+      warnings.push({
+        type: "time",
+        message: `You are already attending "${conflict.event_name}" from ${conflictTime}`,
+      });
+    }
+
+    if (warnings.length > 0) {
+      const rooms = await pool.query(
+        "SELECT room_id, room_name, capacity FROM rooms ORDER BY room_name",
+      );
+
+      return res.render("event-form", {
+        title: "Book New Event",
+        user: req.session.user,
+        pageTitle: "Book New Event",
+        formAction: "/events/book",
+        submitButtonText: "Book Event",
+        isEditMode: false,
+        formData: req.body,
+        rooms: rooms.rows,
+        warnings: warnings,
+      });
+    }
 
     const createdEvent = await Event.create({
       event_name: event_name,
@@ -89,7 +171,7 @@ const createEventPost = async (req, res) => {
       start_datetime: startUTC,
       end_datetime: endUTC,
       privacy_type: privacy_type || "public",
-      max_capacity: max_capacity ? Number(max_capacity) : null,
+      max_capacity: finalMaxCapacity,
       allow_friend_invites:
         allow_friend_invites === "on" || allow_friend_invites === true,
     });
@@ -164,6 +246,7 @@ const editEventGet = async (req, res) => {
         allow_friend_invites: event.allow_friend_invites,
       },
       rooms: rooms.rows,
+      warnings: [],
     });
   } catch (error) {
     console.error("Edit event form error:", error);
@@ -211,12 +294,109 @@ const editEventPost = async (req, res) => {
       return res.status(400).send("Missing required fields");
     }
 
+    let roomCapacity = null;
+    if (room_id) {
+      const roomResult = await pool.query(
+        "SELECT capacity FROM rooms WHERE room_id = $1",
+        [room_id],
+      );
+      if (roomResult.rows.length > 0) {
+        roomCapacity = roomResult.rows[0].capacity;
+      }
+    }
+
+    let finalMaxCapacity = null;
+    if (max_capacity && max_capacity !== "") {
+      finalMaxCapacity = Number(max_capacity);
+
+      if (roomCapacity !== null && finalMaxCapacity > roomCapacity) {
+        return res.status(400).render("error", {
+          title: "Capacity Error",
+          user: req.session.user,
+          error: `Event capacity (${finalMaxCapacity}) cannot exceed room capacity (${roomCapacity})`,
+        });
+      }
+    } else if (roomCapacity !== null) {
+      finalMaxCapacity = roomCapacity;
+    }
+
     const startUTC = start_datetime + ":00Z";
     const endUTC = end_datetime + ":00Z";
 
     console.log("Updating event with times:");
     console.log("Form start:", start_datetime, "UTC start:", startUTC);
     console.log("Form end:", end_datetime, "UTC end:", endUTC);
+
+    const warnings = [];
+
+    if (room_id) {
+      const roomConflictResult = await pool.query(
+        checkRoomConflictSQL(room_id, startUTC, endUTC, eventId),
+      );
+
+      if (roomConflictResult.rows.length > 0) {
+        const conflict = roomConflictResult.rows[0];
+        const conflictStart = new Date(conflict.start_datetime);
+        const conflictEnd = new Date(conflict.end_datetime);
+        const conflictTime = `${conflictStart.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${conflictEnd.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+
+        warnings.push({
+          type: "room",
+          message: `Room is occupied by "${conflict.event_name}" from ${conflictTime}`,
+        });
+      }
+    }
+
+    const userTimeConflictResult = await pool.query(
+      checkUserTimeConflictSQL(userId, startUTC, endUTC, eventId),
+    );
+    if (userTimeConflictResult.rows.length > 0) {
+      const conflict = userTimeConflictResult.rows[0];
+      const conflictStart = new Date(conflict.start_datetime);
+      const conflictEnd = new Date(conflict.end_datetime);
+      const conflictTime = `${conflictStart.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${conflictEnd.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+
+      warnings.push({
+        type: "time",
+        message: `You are already attending "${conflict.event_name}" from ${conflictTime}`,
+      });
+    }
+
+    if (warnings.length > 0) {
+      const rooms = await pool.query(
+        "SELECT room_id, room_name, capacity FROM rooms ORDER BY room_name",
+      );
+
+      const formatForForm = (dateValue) => {
+        if (!dateValue) return "";
+        const date = new Date(dateValue);
+        const pad = (n) => n.toString().padStart(2, "0");
+        return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
+      };
+
+      return res.render("event-form", {
+        title: "Edit Event",
+        user: req.session.user,
+        pageTitle: "Edit Event",
+        formAction: `/event/${eventId}/edit`,
+        submitButtonText: "Update Event",
+        isEditMode: true,
+        formData: {
+          event_name: event_name,
+          event_description: event_description,
+          start_datetime: start_datetime,
+          end_datetime: end_datetime,
+          room_id: room_id,
+          color: color,
+          is_all_day: is_all_day,
+          privacy_type: privacy_type,
+          max_capacity: max_capacity,
+          allow_friend_invites: allow_friend_invites,
+        },
+        rooms: rooms.rows,
+        warnings: warnings,
+      });
+    }
 
     await Event.update(eventId, {
       event_name,
@@ -237,11 +417,7 @@ const editEventPost = async (req, res) => {
           ? is_all_day === "on" || is_all_day === true
           : event.is_all_day,
       privacy_type: privacy_type || event.privacy_type || "public",
-      max_capacity: max_capacity
-        ? Number(max_capacity)
-        : max_capacity === ""
-          ? null
-          : event.max_capacity,
+      max_capacity: finalMaxCapacity,
       allow_friend_invites:
         allow_friend_invites !== undefined
           ? allow_friend_invites === "on" || allow_friend_invites === true

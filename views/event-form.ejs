@@ -16,7 +16,20 @@
                         <%= pageTitle %>
                     </h1>
 
-                    <form action="<%= formAction %>" method="POST">
+                    <% if (warnings && warnings.length > 0) { %>
+                        <div class="warnings-container" style="margin-bottom: 2rem;">
+                            <% warnings.forEach(warning=> { %>
+                                <div class="warning-message" style="background: rgba(255, 152, 0, 0.1); border: 1px solid var(--warning); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="color: var(--warning); font-weight: bold;">⚠️ Warning:</span>
+                                        <span><%= warning.message %></span>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        </div>
+                    <% } %>
+
+                    <form action="<%= formAction %>" method="POST" id="eventForm">
                         <div class="form-group">
                             <label for="event_name">Event Name</label>
                             <input type="text" id="event_name" name="event_name"
@@ -86,9 +99,16 @@
                                 style="width: 50px; height: 40px; padding: 0; border: none;">
                         </div>
 
-                        <button type="submit" class="cta-button" style="width: 100%;">
-                            <%= submitButtonText %>
+                        <button type="submit" class="cta-button" style="width: 100%;" 
+                                id="submitButton" <%= warnings && warnings.length > 0 ? 'disabled' : '' %>>
+                            <%= warnings && warnings.length > 0 ? 'Cannot Book - Conflicts Detected' : submitButtonText %>
                         </button>
+
+                        <% if (warnings && warnings.length > 0) { %>
+                            <p style="text-align: center; color: var(--warning); margin-top: 1rem; font-style: italic;">
+                                Please resolve the conflicts above to book this event
+                            </p>
+                        <% } %>
                     </form>
                 </div>
             </div>
@@ -101,6 +121,22 @@
 
                 picker.addEventListener("input", () => {
                     preview.style.backgroundColor = picker.value;
+                });
+
+                // Real-time conflict checking could be added here with AJAX
+                const form = document.getElementById('eventForm');
+                const submitButton = document.getElementById('submitButton');
+                
+                // Basic client-side validation
+                form.addEventListener('submit', function(e) {
+                    const start = document.getElementById('start_datetime').value;
+                    const end = document.getElementById('end_datetime').value;
+                    
+                    if (start && end && new Date(start) >= new Date(end)) {
+                        e.preventDefault();
+                        alert('End time must be after start time');
+                        return false;
+                    }
                 });
             </script>
 

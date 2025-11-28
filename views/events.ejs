@@ -14,16 +14,17 @@
                 <div class="event-column">
                     <h2>📬 Upcoming Invites</h2>
                     <% upcomingEvents.forEach(event=> { %>
-                        <div class="glass-card event-card">
+                        <div class="glass-card event-card <%= event.is_full ? 'event-full' : '' %> <%= event.has_time_conflict ? 'event-conflict' : '' %>">
                             <h3>
                                 <%= event.event_name %>
                             </h3>
                             <div class="event-meta">
                                 <p><strong>Date:</strong>
-                                    <%= new Date(event.start_datetime).toUTCString().slice(0, 16) %>
+                                    <%= new Date(event.start_datetime).toLocaleDateString() %>
                                 </p>
                                 <p><strong>Time:</strong>
-                                    <%= new Date(event.start_datetime).getUTCHours().toString().padStart(2, '0') %>:<%= new Date(event.start_datetime).getUTCMinutes().toString().padStart(2, '0') %> UTC
+                                    <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit' ,
+                                        minute:'2-digit'}) %>
                                 </p>
                                 <p><strong>Capacity:</strong>
                                     <%= event.capacity_display %>
@@ -34,9 +35,16 @@
                                     </p>
                                     <% } %>
                             </div>
-                            <span class="event-status status-upcoming">Needs RSVP</span>
-                            <a href="/event/<%= event.event_id %>" style="display: block; margin-top: 0.5rem;">View
-                                Details →</a>
+                            <% if (event.is_full) { %>
+                                <span class="event-status status-full">Full</span>
+                                <p style="color: var(--text-secondary); margin-top: 0.5rem; font-style: italic;">Event is at full capacity</p>
+                            <% } else if (event.has_time_conflict) { %>
+                                <span class="event-status status-conflict">Time Conflict</span>
+                                <p style="color: var(--warning); margin-top: 0.5rem; font-style: italic;">This event conflicts with an event you are attending</p>
+                            <% } else { %>
+                                <span class="event-status status-upcoming">Needs RSVP</span>
+                                <a href="/event/<%= event.event_id %>" style="display: block; margin-top: 0.5rem;">View Details →</a>
+                            <% } %>
                         </div>
                         <% }); %>
                             <% if (upcomingEvents.length===0) { %>
@@ -53,10 +61,11 @@
                             </h3>
                             <div class="event-meta">
                                 <p><strong>Date:</strong>
-                                    <%= new Date(event.start_datetime).toUTCString().slice(0, 16) %>
+                                    <%= new Date(event.start_datetime).toLocaleDateString() %>
                                 </p>
                                 <p><strong>Time:</strong>
-                                    <%= new Date(event.start_datetime).getUTCHours().toString().padStart(2, '0') %>:<%= new Date(event.start_datetime).getUTCMinutes().toString().padStart(2, '0') %> UTC
+                                    <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit' ,
+                                        minute:'2-digit'}) %>
                                 </p>
                                 <p><strong>Capacity:</strong>
                                     <%= event.capacity_display %>
@@ -82,10 +91,11 @@
                             </h3>
                             <div class="event-meta">
                                 <p><strong>Date:</strong>
-                                    <%= new Date(event.start_datetime).toUTCString().slice(0, 16) %>
+                                    <%= new Date(event.start_datetime).toLocaleDateString() %>
                                 </p>
                                 <p><strong>Time:</strong>
-                                    <%= new Date(event.start_datetime).getUTCHours().toString().padStart(2, '0') %>:<%= new Date(event.start_datetime).getUTCMinutes().toString().padStart(2, '0') %> UTC
+                                    <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit' ,
+                                        minute:'2-digit'}) %>
                                 </p>
                                 <p><strong>Capacity:</strong>
                                     <%= event.capacity_display %>

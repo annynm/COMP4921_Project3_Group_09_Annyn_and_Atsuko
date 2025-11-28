@@ -156,6 +156,17 @@ nav {
   box-shadow: 0 6px 20px rgba(0, 102, 204, 0.3);
 }
 
+.cta-button:disabled {
+  background: var(--text-secondary);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.cta-button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 /* Login/Register Forms */
 .login-form {
   max-width: 400px;
@@ -191,6 +202,15 @@ nav {
   outline: none;
   border-color: var(--greendale-blue);
   box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+}
+
+/* Warning Messages */
+.warning-message {
+  background: rgba(255, 152, 0, 0.1);
+  border: 1px solid var(--warning);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
 }
 
 /* Events Page */
@@ -250,6 +270,48 @@ nav {
 .status-admin {
   background: var(--greendale-blue-light);
   color: white;
+}
+
+.status-full {
+  background: var(--text-secondary);
+  color: white;
+}
+
+.status-conflict {
+  background: var(--warning);
+  color: white;
+}
+
+/* Full Event Styles */
+.event-full {
+  opacity: 0.6;
+  background-color: var(--background-secondary) !important;
+}
+
+.event-full h3,
+.event-full .event-meta p {
+  color: var(--text-secondary) !important;
+}
+
+.event-full .event-status {
+  background-color: var(--text-secondary) !important;
+  color: white !important;
+}
+
+/* Conflict Event Styles */
+.event-conflict {
+  opacity: 0.6;
+  background-color: rgba(255, 152, 0, 0.1) !important;
+}
+
+.event-conflict h3,
+.event-conflict .event-meta p {
+  color: var(--text-secondary) !important;
+}
+
+.event-conflict .event-status {
+  background-color: var(--warning) !important;
+  color: white !important;
 }
 
 /* Event Details */
@@ -418,7 +480,7 @@ footer {
 
 .day-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: between;
   align-items: center;
   margin-bottom: 0.5rem;
   font-weight: 600;

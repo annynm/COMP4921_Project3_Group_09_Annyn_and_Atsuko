@@ -173,6 +173,31 @@
                 // Listen for changes
                 recurringTypeSelect.addEventListener('change', toggleRecurringEndDate);
 
+                // Validate recurring end date when it's selected
+                recurringEndDateInput.addEventListener('change', function () {
+                    const startDatetime = document.getElementById('start_datetime').value;
+                    const recurringEndDate = recurringEndDateInput.value;
+
+                    if (recurringEndDate) {
+                        // Check if start date is filled
+                        if (!startDatetime) {
+                            alert('Please fill in the Start Date & Time first');
+                            recurringEndDateInput.value = '';
+                            return;
+                        }
+
+                        // Extract date part from start_datetime (YYYY-MM-DD format)
+                        const startDate = startDatetime.split('T')[0];
+
+                        // Compare dates
+                        if (new Date(recurringEndDate) < new Date(startDate)) {
+                            alert('Recurring end date must be on or after the start date');
+                            recurringEndDateInput.value = '';
+                            return;
+                        }
+                    }
+                });
+
                 // Real-time conflict checking could be added here with AJAX
                 const form = document.getElementById('eventForm');
                 const submitButton = document.getElementById('submitButton');
@@ -195,12 +220,6 @@
                         if (!recurringEndDate) {
                             e.preventDefault();
                             alert('Please select a recurring end date');
-                            return false;
-                        }
-                        // Validate that recurring end date is after start date
-                        if (start && recurringEndDate && new Date(recurringEndDate) < new Date(start.split('T')[0])) {
-                            e.preventDefault();
-                            alert('Recurring end date must be on or after the start date');
                             return false;
                         }
                     }

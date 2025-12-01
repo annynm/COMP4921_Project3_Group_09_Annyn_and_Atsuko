@@ -1,14 +1,12 @@
 <%- include('partials/header') %>
     <%- include('partials/nav', { activePage: 'events' , user: user }) %>
 
-        <% 
-        function formatDateTimeLocal(dateStr) {
-            if (!dateStr) return '' ; 
-            const date=new Date(dateStr); const pad=(n)=> n.toString().padStart(2, '0');
+        <% function formatDateTimeLocal(dateStr) { if (!dateStr) return '' ; const date=new Date(dateStr); const
+            pad=(n)=> n.toString().padStart(2, '0');
             return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() +
             1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
             }
-        %>
+            %>
 
             <div class="container">
                 <div class="glass-card" style="max-width: 600px; margin: 0 auto;">
@@ -16,100 +14,127 @@
                         <%= pageTitle %>
                     </h1>
 
-                    <% if (warnings && warnings.length > 0) { %>
+                    <% if (warnings && warnings.length> 0) { %>
                         <div class="warnings-container" style="margin-bottom: 2rem;">
                             <% warnings.forEach(warning=> { %>
-                                <div class="warning-message" style="background: rgba(255, 152, 0, 0.1); border: 1px solid var(--warning); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                                <div class="warning-message"
+                                    style="background: rgba(255, 152, 0, 0.1); border: 1px solid var(--warning); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
                                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                                         <span style="color: var(--warning); font-weight: bold;">⚠️ Warning:</span>
-                                        <span><%= warning.message %></span>
+                                        <span>
+                                            <%= warning.message %>
+                                        </span>
                                     </div>
                                 </div>
-                            <% }); %>
+                                <% }); %>
                         </div>
-                    <% } %>
-
-                    <form action="<%= formAction %>" method="POST" id="eventForm">
-                        <div class="form-group">
-                            <label for="event_name">Event Name</label>
-                            <input type="text" id="event_name" name="event_name"
-                                value="<%= formData.event_name || '' %>" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="event_description">Description</label>
-                            <textarea id="event_description" name="event_description"
-                                rows="4"><%= formData.event_description || '' %></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="start_datetime">Start Date & Time (UTC)</label>
-                            <input type="datetime-local" id="start_datetime" name="start_datetime"
-                                value="<%= formatDateTimeLocal(formData.start_datetime) %>" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="end_datetime">End Date & Time (UTC)</label>
-                            <input type="datetime-local" id="end_datetime" name="end_datetime"
-                                value="<%= formatDateTimeLocal(formData.end_datetime) %>" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="room_id">Room</label>
-                            <select id="room_id" name="room_id">
-                                <option value="">No Room</option>
-                                <% rooms.forEach(function(room) { %>
-                                    <option value="<%= room.room_id %>" <%=formData.room_id==room.room_id ? 'selected'
-                                        : '' %>>
-                                        <%= room.room_name %> (Capacity: <%= room.capacity %>)
-                                    </option>
-                                    <% }); %>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="privacy_type">Privacy</label>
-                            <select id="privacy_type" name="privacy_type" required>
-                                <option value="public" <%=formData.privacy_type==='public' ? 'selected' : '' %>>Public
-                                </option>
-                                <option value="friends_only" <%=formData.privacy_type==='friends_only' ? 'selected' : ''
-                                    %>>Friends Only</option>
-                                <option value="invite_only" <%=formData.privacy_type==='invite_only' ? 'selected' : ''
-                                    %>>Invite Only</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="max_capacity">Max Capacity (leave empty for unlimited)</label>
-                            <input type="number" id="max_capacity" name="max_capacity" min="1"
-                                value="<%= formData.max_capacity || '' %>">
-                        </div>
-
-                        <div class="form-group">
-                            <label>
-                                <input type="checkbox" name="allow_friend_invites" <%=formData.allow_friend_invites
-                                    !==false ? 'checked' : '' %>>
-                                Allow attendees to invite friends
-                            </label>
-                        </div>
-
-                        <div class="form-group" style="display: flex; align-items: center; gap: 12px;">
-                            <label for="color">Event Display Color</label>
-                            <input type="color" id="color" name="color" value="<%= formData.color || '#4287f5' %>"
-                                style="width: 50px; height: 40px; padding: 0; border: none;">
-                        </div>
-
-                        <button type="submit" class="cta-button" style="width: 100%;" 
-                                id="submitButton" <%= warnings && warnings.length > 0 ? 'disabled' : '' %>>
-                            <%= warnings && warnings.length > 0 ? 'Cannot Book - Conflicts Detected' : submitButtonText %>
-                        </button>
-
-                        <% if (warnings && warnings.length > 0) { %>
-                            <p style="text-align: center; color: var(--warning); margin-top: 1rem; font-style: italic;">
-                                Please resolve the conflicts above to book this event
-                            </p>
                         <% } %>
-                    </form>
+
+                            <form action="<%= formAction %>" method="POST" id="eventForm">
+                                <div class="form-group">
+                                    <label for="event_name">Event Name</label>
+                                    <input type="text" id="event_name" name="event_name"
+                                        value="<%= formData.event_name || '' %>" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="event_description">Description</label>
+                                    <textarea id="event_description" name="event_description"
+                                        rows="4"><%= formData.event_description || '' %></textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="start_datetime">Start Date & Time (UTC)</label>
+                                    <input type="datetime-local" id="start_datetime" name="start_datetime"
+                                        value="<%= formatDateTimeLocal(formData.start_datetime) %>" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="end_datetime">End Date & Time (UTC)</label>
+                                    <input type="datetime-local" id="end_datetime" name="end_datetime"
+                                        value="<%= formatDateTimeLocal(formData.end_datetime) %>" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="recurring_type">Recurring</label>
+                                    <select id="recurring_type" name="recurring_type">
+                                        <option value="none" <%=formData.recurring_type==='none' ||
+                                            !formData.recurring_type ? 'selected' : '' %>>Does not repeat</option>
+                                        <option value="daily" <%=formData.recurring_type==='daily' ? 'selected' : '' %>
+                                            >Everyday</option>
+                                        <option value="weekly" <%=formData.recurring_type==='weekly' ? 'selected' : ''
+                                            %>>Weekly</option>
+                                        <option value="monthly" <%=formData.recurring_type==='monthly' ? 'selected' : ''
+                                            %>>Monthly on the day</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group" id="recurring_end_date_group" style="display: none;">
+                                    <label for="recurring_end_date">Recurring ends on (inclusive)</label>
+                                    <input type="date" id="recurring_end_date" name="recurring_end_date"
+                                        value="<%= formData.recurring_end_date || '' %>">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="room_id">Room</label>
+                                    <select id="room_id" name="room_id">
+                                        <option value="">No Room</option>
+                                        <% rooms.forEach(function(room) { %>
+                                            <option value="<%= room.room_id %>" <%=formData.room_id==room.room_id
+                                                ? 'selected' : '' %>>
+                                                <%= room.room_name %> (Capacity: <%= room.capacity %>)
+                                            </option>
+                                            <% }); %>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="privacy_type">Privacy</label>
+                                    <select id="privacy_type" name="privacy_type" required>
+                                        <option value="public" <%=formData.privacy_type==='public' ? 'selected' : '' %>
+                                            >Public
+                                        </option>
+                                        <option value="friends_only" <%=formData.privacy_type==='friends_only'
+                                            ? 'selected' : '' %>>Friends Only</option>
+                                        <option value="invite_only" <%=formData.privacy_type==='invite_only'
+                                            ? 'selected' : '' %>>Invite Only</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="max_capacity">Max Capacity (leave empty for unlimited)</label>
+                                    <input type="number" id="max_capacity" name="max_capacity" min="1"
+                                        value="<%= formData.max_capacity || '' %>">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" name="allow_friend_invites"
+                                            <%=formData.allow_friend_invites !==false ? 'checked' : '' %>>
+                                        Allow attendees to invite friends
+                                    </label>
+                                </div>
+
+                                <div class="form-group" style="display: flex; align-items: center; gap: 12px;">
+                                    <label for="color">Event Display Color</label>
+                                    <input type="color" id="color" name="color"
+                                        value="<%= formData.color || '#4287f5' %>"
+                                        style="width: 50px; height: 40px; padding: 0; border: none;">
+                                </div>
+
+                                <button type="submit" class="cta-button" style="width: 100%;" id="submitButton"
+                                    <%=warnings && warnings.length> 0 ? 'disabled' : '' %>>
+                                    <%= warnings && warnings.length> 0 ? 'Cannot Book - Conflicts Detected' :
+                                        submitButtonText %>
+                                </button>
+
+                                <% if (warnings && warnings.length> 0) { %>
+                                    <p
+                                        style="text-align: center; color: var(--warning); margin-top: 1rem; font-style: italic;">
+                                        Please resolve the conflicts above to book this event
+                                    </p>
+                                    <% } %>
+                            </form>
                 </div>
             </div>
 
@@ -117,25 +142,67 @@
                 const picker = document.getElementById("color");
                 const preview = document.getElementById("colorPreview");
 
-                preview.style.backgroundColor = picker.value;
-
-                picker.addEventListener("input", () => {
+                if (preview) {
                     preview.style.backgroundColor = picker.value;
-                });
+
+                    picker.addEventListener("input", () => {
+                        preview.style.backgroundColor = picker.value;
+                    });
+                }
+
+                // Recurring event functionality
+                const recurringTypeSelect = document.getElementById('recurring_type');
+                const recurringEndDateGroup = document.getElementById('recurring_end_date_group');
+                const recurringEndDateInput = document.getElementById('recurring_end_date');
+
+                // Function to toggle recurring end date field visibility
+                function toggleRecurringEndDate() {
+                    const selectedValue = recurringTypeSelect.value;
+                    if (selectedValue !== 'none') {
+                        recurringEndDateGroup.style.display = 'block';
+                        recurringEndDateInput.setAttribute('required', 'required');
+                    } else {
+                        recurringEndDateGroup.style.display = 'none';
+                        recurringEndDateInput.removeAttribute('required');
+                    }
+                }
+
+                // Initialize on page load
+                toggleRecurringEndDate();
+
+                // Listen for changes
+                recurringTypeSelect.addEventListener('change', toggleRecurringEndDate);
 
                 // Real-time conflict checking could be added here with AJAX
                 const form = document.getElementById('eventForm');
                 const submitButton = document.getElementById('submitButton');
-                
+
                 // Basic client-side validation
-                form.addEventListener('submit', function(e) {
+                form.addEventListener('submit', function (e) {
                     const start = document.getElementById('start_datetime').value;
                     const end = document.getElementById('end_datetime').value;
-                    
+
                     if (start && end && new Date(start) >= new Date(end)) {
                         e.preventDefault();
                         alert('End time must be after start time');
                         return false;
+                    }
+
+                    // Validate recurring end date if recurring is selected
+                    const recurringType = recurringTypeSelect.value;
+                    if (recurringType !== 'none') {
+                        const recurringEndDate = recurringEndDateInput.value;
+                        if (!recurringEndDate) {
+                            e.preventDefault();
+                            alert('Please select a recurring end date');
+                            return false;
+                        }
+                        // Validate that recurring end date is after start date
+                        if (start && recurringEndDate && new Date(recurringEndDate) < new Date(start.split('T')[0])) {
+                            e.preventDefault();
+                            alert('Recurring end date must be on or after the start date');
+                            return false;
+                        }
                     }
                 });
             </script>

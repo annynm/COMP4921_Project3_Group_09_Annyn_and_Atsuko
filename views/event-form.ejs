@@ -122,16 +122,15 @@
                                         style="width: 50px; height: 40px; padding: 0; border: none;">
                                 </div>
 
-                                <button type="submit" class="cta-button" style="width: 100%;" id="submitButton"
-                                    <%=warnings && warnings.length> 0 ? 'disabled' : '' %>>
-                                    <%= warnings && warnings.length> 0 ? 'Cannot Book - Conflicts Detected' :
-                                        submitButtonText %>
+                                <button type="submit" class="cta-button" style="width: 100%;" id="submitButton">
+                                    <%= submitButtonText %>
                                 </button>
 
                                 <% if (warnings && warnings.length> 0) { %>
                                     <p
                                         style="text-align: center; color: var(--warning); margin-top: 1rem; font-style: italic;">
-                                        Please resolve the conflicts above to book this event
+                                        Warning: Conflicts detected above. You can still proceed, but please review the
+                                        conflicts.
                                     </p>
                                     <% } %>
                             </form>

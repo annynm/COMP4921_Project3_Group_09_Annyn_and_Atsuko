@@ -15,7 +15,6 @@ class Event {
   static async getUpcomingForUser(userId, limit = 20) {
     try {
       const result = await pool.query(getUpcomingEventsSQL(userId, limit));
-      console.log(result.rows)
       return result.rows;
     } catch (error) {
       console.error("Error fetching upcoming events for user:", userId, error);
@@ -26,8 +25,6 @@ class Event {
   static async getAttendingForUser(userId, limit = 20) {
     try {
       const result = await pool.query(getAttendingEventsSQL(userId, limit));
-      console.log(result)
-      console.log(`attending event: ${result.rows}`)
       return result.rows;
     } catch (error) {
       console.error("Error fetching attending events for user:", userId, error);

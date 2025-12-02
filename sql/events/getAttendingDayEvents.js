@@ -3,8 +3,8 @@ module.exports = (userId, date) => ({
         SELECT DISTINCT
             e.event_id,
             e.event_name,
-            e.start_datetime,
-            e.end_datetime,
+            e.start_datetime AT TIME ZONE 'UTC' as start_datetime,
+            e.end_datetime AT TIME ZONE 'UTC' as end_datetime,
             e.color,
             r.room_name
         FROM event e
@@ -14,8 +14,8 @@ module.exports = (userId, date) => ({
         AND e.is_cancelled = FALSE
         AND rsvp.user_id = $1 
         AND rsvp.status = 'accepted'
-        AND DATE(e.start_datetime) = $2::date
-        ORDER BY e.start_datetime ASC
+        AND DATE(e.start_datetime AT TIME ZONE 'UTC') = $2::date
+        ORDER BY start_datetime ASC
     `,
     values: [userId, date],
 });

@@ -2,7 +2,21 @@ module.exports = (eventId, userId) => ({
     text: `
         WITH event_info AS (
             SELECT 
-                e.*,
+                e.event_id,
+                e.event_name,
+                e.event_description,
+                e.start_datetime AT TIME ZONE 'UTC' as start_datetime,
+                e.end_datetime AT TIME ZONE 'UTC' as end_datetime,
+                e.room_id,
+                e.color,
+                e.is_all_day,
+                e.privacy_type,
+                e.max_capacity,
+                e.allow_friend_invites,
+                e.owner_id,
+                e.created_at,
+                e.updated_at,
+                e.is_deleted,
                 u.user_name as owner_name,
                 u.fname as owner_fname,
                 u.lname as owner_lname,
@@ -14,7 +28,7 @@ module.exports = (eventId, userId) => ({
             LEFT JOIN rooms r ON e.room_id = r.room_id
             LEFT JOIN rsvp ON e.event_id = rsvp.event_id
             WHERE e.event_id = $1 AND e.is_deleted = FALSE
-            GROUP BY e.event_id, u.user_id, r.room_id
+            GROUP BY e.event_id, u.user_id, r.room_id, e.start_datetime, e.end_datetime, e.room_id, e.color, e.is_all_day, e.privacy_type, e.max_capacity, e.allow_friend_invites, e.owner_id, e.created_at, e.updated_at, e.is_deleted, e.event_name, e.event_description
         ),
         user_status AS (
             SELECT status FROM rsvp WHERE event_id = $1 AND user_id = $2

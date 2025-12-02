@@ -143,7 +143,6 @@ const bookEventGet = async (req, res) => {
 const createEventPost = async (req, res) => {
   try {
     const user = req.session.user;
-    console.log(user);
     const ownerId = user.id;
 
     const {
@@ -191,12 +190,15 @@ const createEventPost = async (req, res) => {
       finalMaxCapacity = roomCapacity;
     }
 
-    const startUTC = start_datetime + ":00Z";
-    const endUTC = end_datetime + ":00Z";
+    // Frontend sends UTC values, use them directly
+    // If format is YYYY-MM-DDTHH:mm, add :00Z, otherwise use as-is
+    let startUTC = start_datetime.includes('Z') ? start_datetime : start_datetime + ":00Z";
+    let endUTC = end_datetime.includes('Z') ? end_datetime : end_datetime + ":00Z";
 
-    console.log("Creating event with times:");
-    console.log("Form start:", start_datetime, "UTC start:", startUTC);
-    console.log("Form end:", end_datetime, "UTC end:", endUTC);
+    // Convert to PostgreSQL format: remove Z and replace T with space
+    // PostgreSQL timestamp without time zone expects format: YYYY-MM-DD HH:mm:ss
+    const startForDB = startUTC.replace('Z', '').replace('T', ' ');
+    const endForDB = endUTC.replace('Z', '').replace('T', ' ');
 
     // Check if this is a recurring event
     const isRecurring = recurring_type && recurring_type !== 'none' && recurring_end_date;
@@ -224,7 +226,6 @@ const createEventPost = async (req, res) => {
         recurringEndDateObj
       );
 
-      console.log(`Found ${recurringDates.length} recurring dates for type: ${recurring_type}`);
 
       // Check conflicts for each recurring date
       for (const date of recurringDates) {
@@ -307,6 +308,10 @@ const createEventPost = async (req, res) => {
         const occurrenceStartUTC = occurrenceStart.toISOString().replace(/\.\d{3}Z$/, 'Z');
         const occurrenceEndUTC = occurrenceEnd.toISOString().replace(/\.\d{3}Z$/, 'Z');
 
+        // Convert to PostgreSQL format: remove Z and replace T with space
+        const occurrenceStartForDB = occurrenceStartUTC.replace('Z', '').replace('T', ' ');
+        const occurrenceEndForDB = occurrenceEndUTC.replace('Z', '').replace('T', ' ');
+
         const createdEvent = await Event.create({
           event_name: event_name,
           owner_id: ownerId,
@@ -315,8 +320,8 @@ const createEventPost = async (req, res) => {
           room_id: room_id ? Number(room_id) : null,
           color: color || "#4287f5",
           is_all_day: is_all_day,
-          start_datetime: occurrenceStartUTC,
-          end_datetime: occurrenceEndUTC,
+          start_datetime: occurrenceStartForDB,
+          end_datetime: occurrenceEndForDB,
           privacy_type: privacy_type || "public",
           max_capacity: finalMaxCapacity,
           allow_friend_invites:
@@ -329,7 +334,6 @@ const createEventPost = async (req, res) => {
         await Event.upsertRSVP(eventId, ownerId, "accepted");
       }
 
-      console.log(`Created ${recurringDates.length} recurring events`);
       return res.redirect("/events");
     } else {
       // Non-recurring event - use existing logic
@@ -396,8 +400,8 @@ const createEventPost = async (req, res) => {
         room_id: room_id ? Number(room_id) : null,
         color: color || "#4287f5",
         is_all_day: is_all_day,
-        start_datetime: startUTC,
-        end_datetime: endUTC,
+        start_datetime: startForDB,
+        end_datetime: endForDB,
         privacy_type: privacy_type || "public",
         max_capacity: finalMaxCapacity,
         allow_friend_invites:
@@ -407,13 +411,8 @@ const createEventPost = async (req, res) => {
       const eventId = createdEvent.event_id;
 
       const insertedEventAdmin = await Event.insertEventAdmin(eventId, ownerId);
-      console.log("inserted.");
-      console.log(`${insertedEventAdmin}`);
 
       const RSVP = await Event.upsertRSVP(eventId, ownerId, "accepted");
-      console.log(`upserted: ${RSVP}`);
-
-      console.log("run this code");
       return res.redirect("/events");
     }
   } catch (err) {
@@ -448,11 +447,43 @@ const editEventGet = async (req, res) => {
       "SELECT room_id, room_name, capacity FROM rooms ORDER BY room_name",
     );
 
+    // Format UTC date for form (frontend will convert to local timezone)
+    // PostgreSQL returns timestamp with time zone (after AT TIME ZONE 'UTC'), so we can use it directly
     const formatForForm = (dateValue) => {
       if (!dateValue) return "";
+
+      // If it's already a Date object from PostgreSQL (with timezone), use toISOString
+      if (dateValue instanceof Date) {
+        // Use toISOString to get proper UTC ISO format, then extract YYYY-MM-DDTHH:mm part
+        return dateValue.toISOString().substring(0, 16);
+      }
+
+      // If it's a string, try to parse it
+      const str = String(dateValue);
+
+      // If it's already in ISO format with Z, extract the date-time part
+      if (str.includes('T') && str.includes('Z')) {
+        // Remove Z and milliseconds, keep only YYYY-MM-DDTHH:mm
+        return str.replace('Z', '').replace(/\.\d{3}$/, '').substring(0, 16);
+      }
+
+      // If it's PostgreSQL format (YYYY-MM-DD HH:mm:ss), convert to ISO format
+      if (str.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)) {
+        return str.replace(' ', 'T').substring(0, 16);
+      }
+
+      // If it's already in YYYY-MM-DDTHH:mm format (from previous formatForForm), return as-is
+      if (str.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)) {
+        return str;
+      }
+
+      // Fallback: try to parse as Date
       const date = new Date(dateValue);
-      const pad = (n) => n.toString().padStart(2, "0");
-      return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().substring(0, 16);
+      }
+
+      return "";
     };
 
     res.render("event-form", {
@@ -549,12 +580,15 @@ const editEventPost = async (req, res) => {
       finalMaxCapacity = roomCapacity;
     }
 
-    const startUTC = start_datetime + ":00Z";
-    const endUTC = end_datetime + ":00Z";
+    // Frontend sends UTC values, use them directly
+    // If format is YYYY-MM-DDTHH:mm, add :00Z, otherwise use as-is
+    let startUTC = start_datetime.includes('Z') ? start_datetime : start_datetime + ":00Z";
+    let endUTC = end_datetime.includes('Z') ? end_datetime : end_datetime + ":00Z";
 
-    console.log("Updating event with times:");
-    console.log("Form start:", start_datetime, "UTC start:", startUTC);
-    console.log("Form end:", end_datetime, "UTC end:", endUTC);
+    // Convert to PostgreSQL format: remove Z and replace T with space
+    // PostgreSQL timestamp without time zone expects format: YYYY-MM-DD HH:mm:ss
+    const startForDB = startUTC.replace('Z', '').replace('T', ' ');
+    const endForDB = endUTC.replace('Z', '').replace('T', ' ');
 
     const warnings = [];
 
@@ -638,8 +672,8 @@ const editEventPost = async (req, res) => {
           ? event_description
           : event.event_description,
       color: color || event.color || "#4287f5",
-      start_datetime: startUTC,
-      end_datetime: endUTC,
+      start_datetime: startForDB,
+      end_datetime: endForDB,
       room_id: room_id
         ? Number(room_id)
         : room_id === ""

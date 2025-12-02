@@ -3,8 +3,8 @@ module.exports = (userId, year, month) => ({
         SELECT DISTINCT
             e.event_id,
             e.event_name,
-            e.start_datetime,
-            e.end_datetime,
+            e.start_datetime AT TIME ZONE 'UTC' as start_datetime,
+            e.end_datetime AT TIME ZONE 'UTC' as end_datetime,
             e.color,
             r.room_name
         FROM event e
@@ -16,7 +16,7 @@ module.exports = (userId, year, month) => ({
         AND rsvp.status = 'accepted'
         AND EXTRACT(YEAR FROM e.start_datetime) = $2
         AND EXTRACT(MONTH FROM e.start_datetime) = $3
-        ORDER BY e.start_datetime ASC
+        ORDER BY start_datetime ASC
     `,
     values: [userId, year, month],
 });

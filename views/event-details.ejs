@@ -15,11 +15,10 @@
                                 <%= event.owner_lname %>
                         </p>
                         <p><strong>Date:</strong>
-                            <%= new Date(event.start_datetime).toUTCString().slice(0, 16) %>
+                            <span id="event-date">Loading...</span>
                         </p>
                         <p><strong>Time:</strong>
-                            <%= new Date(event.start_datetime).getUTCHours().toString().padStart(2, '0') %>:<%= new Date(event.start_datetime).getUTCMinutes().toString().padStart(2, '0') %> - 
-                            <%= new Date(event.end_datetime).getUTCHours().toString().padStart(2, '0') %>:<%= new Date(event.end_datetime).getUTCMinutes().toString().padStart(2, '0') %> UTC
+                            <span id="event-time">Loading...</span>
                         </p>
                         <% if (event.room_name) { %>
                             <p><strong>Room:</strong>
@@ -76,5 +75,107 @@
                 </div>
             </div>
         </div>
+
+        <!-- Day.js from CDN -->
+        <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/utc.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/timezone.js"></script>
+        <script>
+            // Initialize Day.js and convert UTC to local timezone
+            function convertEventTimes() {
+                if (typeof dayjs === 'undefined' || typeof dayjs_plugin_utc === 'undefined' || typeof dayjs_plugin_timezone === 'undefined') {
+                    setTimeout(convertEventTimes, 100);
+                    return;
+                }
+                
+                dayjs.extend(dayjs_plugin_utc);
+                dayjs.extend(dayjs_plugin_timezone);
+                
+                const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                
+                // Helper function to normalize UTC string to ISO format
+                // Server now sends ISO strings, this is mainly for safety
+                function normalizeUTCString(utcStr) {
+                    if (!utcStr) return null;
+                    
+                    // If it's already a Date object, convert to ISO
+                    if (utcStr instanceof Date) {
+                        return utcStr.toISOString();
+                    }
+                    
+                    // Convert to string
+                    let str = String(utcStr).trim();
+                    
+                    // If it's already in ISO format with Z, return as-is
+                    if (str.endsWith('Z') && str.includes('T')) {
+                        return str;
+                    }
+                    
+                    // Try to parse as Date (handles ISO strings without Z, and other formats)
+                    const dateObj = new Date(str);
+                    if (!isNaN(dateObj.getTime())) {
+                        return dateObj.toISOString();
+                    }
+                    
+                    // Fallback: try to fix common formats
+                    str = str.replace(' ', 'T');
+                    str = str.replace(/\.\d{3}$/, '');
+                    if (!str.match(/T\d{2}:\d{2}:\d{2}/)) {
+                        str = str.replace(/T(\d{2}:\d{2})$/, 'T$1:00');
+                    }
+                    if (!str.endsWith('Z')) {
+                        str = str + 'Z';
+                    }
+                    
+                    return str;
+                }
+                
+                const startUTC = '<%= event.start_datetime %>';
+                const endUTC = '<%= event.end_datetime %>';
+                
+                if (startUTC && endUTC) {
+                    try {
+                        const normalizedStart = normalizeUTCString(startUTC);
+                        const normalizedEnd = normalizeUTCString(endUTC);
+                        
+                        if (!normalizedStart || !normalizedEnd) {
+                            console.error('Failed to normalize UTC values:', startUTC, endUTC);
+                            return;
+                        }
+                        
+                        const startLocal = dayjs.utc(normalizedStart).tz(userTimezone);
+                        const endLocal = dayjs.utc(normalizedEnd).tz(userTimezone);
+                        
+                        if (!startLocal.isValid() || !endLocal.isValid()) {
+                            console.error('Invalid dates after conversion:', normalizedStart, normalizedEnd);
+                            return;
+                        }
+                        
+                        // Format date
+                        const dateStr = startLocal.format('MMMM D, YYYY');
+                        const dateEl = document.getElementById('event-date');
+                        if (dateEl) {
+                            dateEl.textContent = dateStr;
+                        }
+                        
+                        // Format time
+                        const timeStr = startLocal.format('h:mm A') + ' - ' + endLocal.format('h:mm A');
+                        const timeEl = document.getElementById('event-time');
+                        if (timeEl) {
+                            timeEl.textContent = timeStr;
+                        }
+                    } catch (error) {
+                        console.error('Error converting event times:', error, startUTC, endUTC);
+                    }
+                }
+            }
+            
+            // Wait for DOM and Day.js to be ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', convertEventTimes);
+            } else {
+                convertEventTimes();
+            }
+        </script>
 
         <%- include('partials/footer') %>

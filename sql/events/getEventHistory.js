@@ -5,8 +5,8 @@ module.exports = (userId, limit = 50) => ({
                 e.event_id,
                 e.event_name,
                 e.event_description,
-                e.start_datetime,
-                e.end_datetime,
+                e.start_datetime AT TIME ZONE 'UTC' as start_datetime,
+                e.end_datetime AT TIME ZONE 'UTC' as end_datetime,
                 e.privacy_type,
                 e.max_capacity,
                 r.room_name,
@@ -25,15 +25,15 @@ module.exports = (userId, limit = 50) => ({
             AND e.is_deleted = FALSE
             AND e.is_cancelled = FALSE
             AND e.end_datetime < NOW()
-            GROUP BY e.event_id, u.user_id, r.room_id, rsvp.status
+            GROUP BY e.event_id, u.user_id, r.room_id, rsvp.status, e.start_datetime, e.end_datetime
         ),
         owned_events AS (
             SELECT 
                 e.event_id,
                 e.event_name,
                 e.event_description,
-                e.start_datetime,
-                e.end_datetime,
+                e.start_datetime AT TIME ZONE 'UTC' as start_datetime,
+                e.end_datetime AT TIME ZONE 'UTC' as end_datetime,
                 e.privacy_type,
                 e.max_capacity,
                 r.room_name,
@@ -51,7 +51,7 @@ module.exports = (userId, limit = 50) => ({
             AND e.is_deleted = FALSE
             AND e.is_cancelled = FALSE
             AND e.end_datetime < NOW()
-            GROUP BY e.event_id, u.user_id, r.room_id
+            GROUP BY e.event_id, u.user_id, r.room_id, e.start_datetime, e.end_datetime
         ),
         past_events AS (
             SELECT * FROM attended_events

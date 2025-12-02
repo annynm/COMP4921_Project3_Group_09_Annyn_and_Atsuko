@@ -31,5 +31,83 @@
     </div>
 </div>
 
+<!-- Day.js from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/utc.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/timezone.js"></script>
+<script>
+    // Initialize Day.js when loaded
+    function initCalendarDayJS() {
+        if (typeof dayjs === 'undefined' || typeof dayjs_plugin_utc === 'undefined' || typeof dayjs_plugin_timezone === 'undefined') {
+            setTimeout(initCalendarDayJS, 100);
+            return;
+        }
+        
+        dayjs.extend(dayjs_plugin_utc);
+        dayjs.extend(dayjs_plugin_timezone);
+        
+        // Helper function to normalize UTC string to ISO format
+        function normalizeUTCString(utcStr) {
+            if (!utcStr) return null;
+            
+            // Convert to string if it's not already
+            let str = String(utcStr).trim();
+            
+            // If it's already in ISO format with Z, return as-is
+            if (str.endsWith('Z') && str.includes('T')) {
+                return str;
+            }
+            
+            // Handle various formats
+            // Replace space with T if present
+            str = str.replace(' ', 'T');
+            
+            // Remove milliseconds if present
+            str = str.replace(/\.\d{3}$/, '');
+            
+            // Ensure we have seconds
+            if (!str.match(/T\d{2}:\d{2}:\d{2}/)) {
+                // Add :00 for seconds if missing
+                str = str.replace(/T(\d{2}:\d{2})$/, 'T$1:00');
+            }
+            
+            // Add Z if not present
+            if (!str.endsWith('Z')) {
+                str = str + 'Z';
+            }
+            
+            return str;
+        }
+        
+        // Convert calendar event times to local timezone
+        const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        document.querySelectorAll('.mini-event-time').forEach(function(el) {
+            const miniEvent = el.closest('.mini-event');
+            if (!miniEvent) return;
+            
+            const utcStart = miniEvent.getAttribute('data-utc-start');
+            const utcEnd = miniEvent.getAttribute('data-utc-end');
+            
+            if (utcStart && utcEnd) {
+                try {
+                    const normalizedStart = normalizeUTCString(utcStart);
+                    const normalizedEnd = normalizeUTCString(utcEnd);
+                    const startLocal = dayjs.utc(normalizedStart).tz(userTimezone);
+                    const endLocal = dayjs.utc(normalizedEnd).tz(userTimezone);
+                    el.textContent = startLocal.format('HH:mm') + ' - ' + endLocal.format('HH:mm');
+                } catch (error) {
+                    console.error('Error converting calendar event time:', error, utcStart, utcEnd);
+                }
+            }
+        });
+    }
+    
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initCalendarDayJS);
+    } else {
+        initCalendarDayJS();
+    }
+</script>
 <script src="/js/calendar.js"></script>
 <%- include('partials/footer') %>

@@ -3,7 +3,25 @@ module.exports = (eventId) => ({
     text: `
         WITH event_details AS (
             SELECT 
-                e.*,
+                e.event_id,
+                e.event_name,
+                e.owner_id,
+                e.event_description,
+                e.is_recurring,
+                e.recurring_id,
+                e.room_id,
+                e.color,
+                e.is_all_day,
+                e.start_datetime,
+                e.end_datetime,
+                e.created_at,
+                e.updated_at,
+                e.is_deleted,
+                e.deleted_at,
+                e.is_cancelled,
+                e.privacy_type,
+                e.max_capacity,
+                e.allow_friend_invites,
                 u.user_name as owner_name,
                 u.fname as owner_fname,
                 u.lname as owner_lname,
@@ -18,3 +36,4 @@ module.exports = (eventId) => ({
     `,
     values: [eventId],
 });
+

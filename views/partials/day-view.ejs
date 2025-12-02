@@ -19,26 +19,110 @@
     <!-- Event Overlays -->
     <% if (typeof events !== 'undefined' && events.length > 0) { %>
         <% events.forEach(function(event) { %>
-            <%
-            const start = new Date(event.start_datetime);
-            const end = new Date(event.end_datetime);
-            const startMinutes = start.getHours() * 60 + start.getMinutes();
-            const duration = (end - start) / (1000 * 60);
-            const top = (startMinutes / 60) * 60;
-            const height = (duration / 60) * 60;
-            %>
             <div class="event-overlay" 
-                 style="top: <%= top %>px; height: <%= height %>px; background: <%= event.color || 'var(--greendale-blue)' %>;"
-                 onclick="window.location.href='/event/<%= event.event_id %>'">
+                 data-utc-start="<%= event.start_datetime %>"
+                 data-utc-end="<%= event.end_datetime %>"
+                 data-color="<%= event.color || 'var(--greendale-blue)' %>"
+                 data-event-id="<%= event.event_id %>"
+                 data-event-name="<%= event.event_name %>"
+                 data-room-name="<%= event.room_name || '' %>">
                 <div class="event-overlay-name"><%= event.event_name %></div>
-                <div class="event-overlay-time">
-                    <%= start.getHours().toString().padStart(2, '0') %>:<%= start.getMinutes().toString().padStart(2, '0') %> - 
-                    <%= end.getHours().toString().padStart(2, '0') %>:<%= end.getMinutes().toString().padStart(2, '0') %>
-                </div>
+                <div class="event-overlay-time">Loading...</div>
                 <% if (event.room_name) { %>
                     <div class="event-overlay-room"><%= event.room_name %></div>
                 <% } %>
             </div>
         <% }); %>
     <% } %>
+    
+    <script>
+        // Convert event times to local timezone and position events when Day.js is available
+        function convertDayViewEventTimes() {
+            if (typeof dayjs === 'undefined' || typeof dayjs_plugin_utc === 'undefined' || typeof dayjs_plugin_timezone === 'undefined') {
+                setTimeout(convertDayViewEventTimes, 100);
+                return;
+            }
+            
+            dayjs.extend(dayjs_plugin_utc);
+            dayjs.extend(dayjs_plugin_timezone);
+            
+            // Helper function to normalize UTC string to ISO format
+            function normalizeUTCString(utcStr) {
+                if (!utcStr) return null;
+                
+                // Convert to string if it's not already
+                let str = String(utcStr).trim();
+                
+                // If it's already in ISO format with Z, return as-is
+                if (str.endsWith('Z') && str.includes('T')) {
+                    return str;
+                }
+                
+                // Handle various formats
+                // Replace space with T if present
+                str = str.replace(' ', 'T');
+                
+                // Remove milliseconds if present
+                str = str.replace(/\.\d{3}$/, '');
+                
+                // Ensure we have seconds
+                if (!str.match(/T\d{2}:\d{2}:\d{2}/)) {
+                    // Add :00 for seconds if missing
+                    str = str.replace(/T(\d{2}:\d{2})$/, 'T$1:00');
+                }
+                
+                // Add Z if not present
+                if (!str.endsWith('Z')) {
+                    str = str + 'Z';
+                }
+                
+                return str;
+            }
+            
+            const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            
+            document.querySelectorAll('.event-overlay').forEach(function(overlay) {
+                const utcStart = overlay.getAttribute('data-utc-start');
+                const utcEnd = overlay.getAttribute('data-utc-end');
+                const timeEl = overlay.querySelector('.event-overlay-time');
+                
+                if (utcStart && utcEnd) {
+                    try {
+                        const normalizedStart = normalizeUTCString(utcStart);
+                        const normalizedEnd = normalizeUTCString(utcEnd);
+                        const startLocal = dayjs.utc(normalizedStart).tz(userTimezone);
+                        const endLocal = dayjs.utc(normalizedEnd).tz(userTimezone);
+                        
+                        // Update time display
+                        if (timeEl) {
+                            timeEl.textContent = startLocal.format('HH:mm') + ' - ' + endLocal.format('HH:mm');
+                        }
+                        
+                        // Calculate position and size in local timezone
+                        const startMinutes = startLocal.hour() * 60 + startLocal.minute();
+                        const duration = endLocal.diff(startLocal, 'minute');
+                        const top = (startMinutes / 60) * 60;
+                        const height = (duration / 60) * 60;
+                        
+                        // Apply position and style
+                        overlay.style.top = top + 'px';
+                        overlay.style.height = height + 'px';
+                        overlay.style.background = overlay.getAttribute('data-color');
+                        overlay.onclick = function() {
+                            window.location.href = '/event/' + overlay.getAttribute('data-event-id');
+                        };
+                    } catch (error) {
+                        console.error('Error converting day view event time:', error, utcStart, utcEnd);
+                    }
+                }
+            });
+        }
+        
+        // Wait for DOM and Day.js to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', convertDayViewEventTimes);
+        } else {
+            convertDayViewEventTimes();
+        }
+    </script>
 </div>

@@ -1,100 +1,100 @@
-<%
-function getDaysInMonth(year, month) {
-    return new Date(year, month + 1, 0).getDate();
-}
+<% function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); } function
+    getFirstDayOfMonth(year, month) { return new Date(year, month, 1).getDay(); } function formatDate(year, month, day)
+    { const m=String(month + 1).padStart(2, '0' ); const d=String(day).padStart(2, '0' ); return `${year}-${m}-${d}`; }
+    const daysInMonth=getDaysInMonth(year, month); const firstDay=getFirstDayOfMonth(year, month); const
+    days=Array.from({ length: daysInMonth }, (_, i)=> i + 1);
 
-function getFirstDayOfMonth(year, month) {
-    return new Date(year, month, 1).getDay();
-}
-
-function formatDate(year, month, day) {
-    const m = String(month + 1).padStart(2, '0');
-    const d = String(day).padStart(2, '0');
-    return `${year}-${m}-${d}`;
-}
-
-const daysInMonth = getDaysInMonth(year, month);
-const firstDay = getFirstDayOfMonth(year, month);
-const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-
-const eventsByDate = {};
-if (typeof events !== 'undefined' && events !== null) {
+    const eventsByDate = {};
+    if (typeof events !== 'undefined' && events !== null) {
     events.forEach(event => {
-        try {
-            const eventDate = new Date(event.start_datetime);
-            const dateStr = eventDate.getFullYear() + '-' + 
-                           String(eventDate.getMonth() + 1).padStart(2, '0') + '-' + 
-                           String(eventDate.getDate()).padStart(2, '0');
-            
-            if (!eventsByDate[dateStr]) eventsByDate[dateStr] = [];
-            eventsByDate[dateStr].push(event);
-        } catch (error) {
-            console.error('Error processing event:', event, error);
-        }
-    });
-}
+    try {
+    // Parse UTC datetime string directly to avoid server timezone issues
+    // Format: "YYYY-MM-DDTHH:mm:ssZ" or "YYYY-MM-DD HH:mm:ss"
+    let dateStr;
+    if (event.start_datetime) {
+    const utcStr = event.start_datetime.toString();
+    // Extract date part (YYYY-MM-DD) from UTC string
+    const dateMatch = utcStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (dateMatch) {
+    dateStr = dateMatch[0]; // YYYY-MM-DD
+    } else {
+    // Fallback: use Date object (will use server timezone, but better than nothing)
+    const eventDate = new Date(event.start_datetime);
+    dateStr = eventDate.getFullYear() + '-' +
+    String(eventDate.getMonth() + 1).padStart(2, '0') + '-' +
+    String(eventDate.getDate()).padStart(2, '0');
+    }
+    } else {
+    return; // Skip this event if no start_datetime
+    }
 
-Object.keys(eventsByDate).forEach(date => {
+    if (!eventsByDate[dateStr]) eventsByDate[dateStr] = [];
+    eventsByDate[dateStr].push(event);
+    } catch (error) {
+    console.error('Error processing event:', event, error);
+    }
+    });
+    }
+
+    Object.keys(eventsByDate).forEach(date => {
     eventsByDate[date].sort((a, b) => {
-        return new Date(a.start_datetime) - new Date(b.start_datetime);
+    return new Date(a.start_datetime) - new Date(b.start_datetime);
     });
-});
+    });
 
-const today = new Date();
-const todayStr = today.getFullYear() + '-' + 
-                String(today.getMonth() + 1).padStart(2, '0') + '-' + 
-                String(today.getDate()).padStart(2, '0');
-%>
+    const today = new Date();
+    const todayStr = today.getFullYear() + '-' +
+    String(today.getMonth() + 1).padStart(2, '0') + '-' +
+    String(today.getDate()).padStart(2, '0');
+    %>
 
-<%
-const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-dayHeaders.forEach(day => { %>
-    <div class="calendar-header"><%= day %></div>
-<% }); %>
+    <% const dayHeaders=['Sun', 'Mon' , 'Tue' , 'Wed' , 'Thu' , 'Fri' , 'Sat' ]; dayHeaders.forEach(day=> { %>
+        <div class="calendar-header">
+            <%= day %>
+        </div>
+        <% }); %>
 
-<% for (let i = 0; i < firstDay; i++) { %>
-    <div class="calendar-day empty"></div>
-<% } %>
+            <% for (let i=0; i < firstDay; i++) { %>
+                <div class="calendar-day empty"></div>
+                <% } %>
 
-<%
-days.forEach(day => {
-    const dateStr = formatDate(year, month, day);
-    const dayEvents = eventsByDate[dateStr] || [];
-    const isToday = dateStr === todayStr;
-%>
+                    <% days.forEach(day=> {
+                        const dateStr = formatDate(year, month, day);
+                        const dayEvents = eventsByDate[dateStr] || [];
+                        const isToday = dateStr === todayStr;
+                        %>
 
-<div class="calendar-day <%= isToday ? 'today' : '' %>"
-     data-date="<%= dateStr %>"
-     onclick="loadDayView(this, '<%= dateStr %>')">
+                        <div class="calendar-day <%= isToday ? 'today' : '' %>" data-date="<%= dateStr %>">
 
-    <div class="day-header">
-        <span class="day-number"><%= day %></span>
-        <% if (dayEvents.length > 0) { %>
-            <span class="event-count"><%= dayEvents.length %></span>
-        <% } %>
-    </div>
+                            <div class="day-header">
+                                <span class="day-number">
+                                    <%= day %>
+                                </span>
+                                <% if (dayEvents.length> 0) { %>
+                                    <span class="event-count">
+                                        <%= dayEvents.length %>
+                                    </span>
+                                    <% } %>
+                            </div>
 
-    <div class="day-events">
-        <% if (dayEvents.length > 0) { %>
-            <% dayEvents.forEach(event => {
-                const start = new Date(event.start_datetime);
-                const end = new Date(event.end_datetime);
-
-                const startTime = start.getHours().toString().padStart(2, '0') + ':' + start.getMinutes().toString().padStart(2, '0');
-                const endTime = end.getHours().toString().padStart(2, '0') + ':' + end.getMinutes().toString().padStart(2, '0');
-
-                const eventColor = event.color || 'var(--greendale-blue-light)';
-            %>
-            <div class="mini-event" 
-                 style="background: <%= eventColor %>;"
-                 onclick="event.stopPropagation(); window.location.href='/event/<%= event.event_id %>'">
-                <div class="mini-event-title"><%= event.event_name %></div>
-                <div class="mini-event-time"><%= startTime %> - <%= endTime %></div>
-            </div>
-            <% }); %>
-        <% } else { %>
-            <div class="no-events">No events</div>
-        <% } %>
-    </div>
-</div>
-<% }); %>
+                            <div class="day-events">
+                                <% if (dayEvents.length> 0) { %>
+                                    <% dayEvents.forEach(event=> {
+                                        const eventColor = event.color || 'var(--greendale-blue-light)';
+                                        %>
+                                        <div class="mini-event" style="background: <%= eventColor %>;"
+                                            onclick="event.stopPropagation(); window.location.href='/event/<%= event.event_id %>'"
+                                            data-utc-start="<%= event.start_datetime %>"
+                                            data-utc-end="<%= event.end_datetime %>">
+                                            <div class="mini-event-title">
+                                                <%= event.event_name %>
+                                            </div>
+                                            <div class="mini-event-time">Loading...</div>
+                                        </div>
+                                        <% }); %>
+                                            <% } else { %>
+                                                <div class="no-events">No events</div>
+                                                <% } %>
+                            </div>
+                        </div>
+                        <% }); %>

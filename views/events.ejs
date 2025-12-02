@@ -14,17 +14,22 @@
                 <div class="event-column">
                     <h2>📬 Upcoming Invites</h2>
                     <% upcomingEvents.forEach(event=> { %>
-                        <div class="glass-card event-card <%= event.is_full ? 'event-full' : '' %> <%= event.has_time_conflict ? 'event-conflict' : '' %>">
+                        <div
+                            class="glass-card event-card <%= event.is_full ? 'event-full' : '' %> <%= event.has_time_conflict ? 'event-conflict' : '' %>">
                             <h3>
                                 <%= event.event_name %>
                             </h3>
                             <div class="event-meta">
                                 <p><strong>Date:</strong>
-                                    <%= new Date(event.start_datetime).toLocaleDateString() %>
+                                    <span class="event-date" data-utc="<%= event.start_datetime %>">
+                                        Loading...
+                                    </span>
                                 </p>
                                 <p><strong>Time:</strong>
-                                    <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit' ,
-                                        minute:'2-digit'}) %>
+                                    <span class="event-time" data-utc-start="<%= event.start_datetime %>"
+                                        data-utc-end="<%= event.end_datetime %>">
+                                        Loading...
+                                    </span>
                                 </p>
                                 <p><strong>Capacity:</strong>
                                     <%= event.capacity_display %>
@@ -37,14 +42,17 @@
                             </div>
                             <% if (event.is_full) { %>
                                 <span class="event-status status-full">Full</span>
-                                <p style="color: var(--text-secondary); margin-top: 0.5rem; font-style: italic;">Event is at full capacity</p>
-                            <% } else if (event.has_time_conflict) { %>
-                                <span class="event-status status-conflict">Time Conflict</span>
-                                <p style="color: var(--warning); margin-top: 0.5rem; font-style: italic;">This event conflicts with an event you are attending</p>
-                            <% } else { %>
-                                <span class="event-status status-upcoming">Needs RSVP</span>
-                                <a href="/event/<%= event.event_id %>" style="display: block; margin-top: 0.5rem;">View Details →</a>
-                            <% } %>
+                                <p style="color: var(--text-secondary); margin-top: 0.5rem; font-style: italic;">Event
+                                    is at full capacity</p>
+                                <% } else if (event.has_time_conflict) { %>
+                                    <span class="event-status status-conflict">Time Conflict</span>
+                                    <p style="color: var(--warning); margin-top: 0.5rem; font-style: italic;">This event
+                                        conflicts with an event you are attending</p>
+                                    <% } else { %>
+                                        <span class="event-status status-upcoming">Needs RSVP</span>
+                                        <a href="/event/<%= event.event_id %>"
+                                            style="display: block; margin-top: 0.5rem;">View Details →</a>
+                                        <% } %>
                         </div>
                         <% }); %>
                             <% if (upcomingEvents.length===0) { %>
@@ -61,11 +69,15 @@
                             </h3>
                             <div class="event-meta">
                                 <p><strong>Date:</strong>
-                                    <%= new Date(event.start_datetime).toLocaleDateString() %>
+                                    <span class="event-date" data-utc="<%= event.start_datetime %>">
+                                        Loading...
+                                    </span>
                                 </p>
                                 <p><strong>Time:</strong>
-                                    <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit' ,
-                                        minute:'2-digit'}) %>
+                                    <span class="event-time" data-utc-start="<%= event.start_datetime %>"
+                                        data-utc-end="<%= event.end_datetime %>">
+                                        Loading...
+                                    </span>
                                 </p>
                                 <p><strong>Capacity:</strong>
                                     <%= event.capacity_display %>
@@ -91,11 +103,15 @@
                             </h3>
                             <div class="event-meta">
                                 <p><strong>Date:</strong>
-                                    <%= new Date(event.start_datetime).toLocaleDateString() %>
+                                    <span class="event-date" data-utc="<%= event.start_datetime %>">
+                                        Loading...
+                                    </span>
                                 </p>
                                 <p><strong>Time:</strong>
-                                    <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit' ,
-                                        minute:'2-digit'}) %>
+                                    <span class="event-time" data-utc-start="<%= event.start_datetime %>"
+                                        data-utc-end="<%= event.end_datetime %>">
+                                        Loading...
+                                    </span>
                                 </p>
                                 <p><strong>Capacity:</strong>
                                     <%= event.capacity_display %>
@@ -121,5 +137,138 @@
                 </div>
             </div>
         </div>
+
+        <!-- Day.js from CDN -->
+        <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/utc.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/timezone.js"></script>
+        <script>
+            // Initialize Day.js and convert UTC to local timezone
+            function convertEventListTimes() {
+                if (typeof dayjs === 'undefined' || typeof dayjs_plugin_utc === 'undefined' || typeof dayjs_plugin_timezone === 'undefined') {
+                    setTimeout(convertEventListTimes, 100);
+                    return;
+                }
+
+                dayjs.extend(dayjs_plugin_utc);
+                dayjs.extend(dayjs_plugin_timezone);
+
+                const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+                // Helper function to normalize UTC string to ISO format
+                // Now that server sends ISO strings, this is mainly for safety
+                function normalizeUTCString(utcStr) {
+                    if (!utcStr) return null;
+
+                    // If it's already a Date object, convert to ISO
+                    if (utcStr instanceof Date) {
+                        return utcStr.toISOString();
+                    }
+
+                    // Convert to string
+                    let str = String(utcStr).trim();
+
+                    // If it's already in ISO format with Z, return as-is
+                    if (str.endsWith('Z') && str.includes('T')) {
+                        return str;
+                    }
+
+                    // Try to parse as Date (handles ISO strings without Z, and other formats)
+                    const dateObj = new Date(str);
+                    if (!isNaN(dateObj.getTime())) {
+                        return dateObj.toISOString();
+                    }
+
+                    // Fallback: try to fix common formats
+                    str = str.replace(' ', 'T');
+                    str = str.replace(/\.\d{3}$/, '');
+                    if (!str.match(/T\d{2}:\d{2}:\d{2}/)) {
+                        str = str.replace(/T(\d{2}:\d{2})$/, 'T$1:00');
+                    }
+                    if (!str.endsWith('Z')) {
+                        str = str + 'Z';
+                    }
+
+                    return str;
+                }
+
+                // Convert all event dates
+                document.querySelectorAll('.event-date').forEach(function (el) {
+                    const utcValue = el.getAttribute('data-utc');
+                    if (utcValue) {
+                        try {
+                            // Get event name from parent card
+                            const eventCard = el.closest('.event-card');
+                            const eventName = eventCard ? eventCard.querySelector('h3')?.textContent?.trim() : 'Unknown';
+
+                            const normalizedUTC = normalizeUTCString(utcValue);
+                            if (!normalizedUTC) {
+                                console.error('Failed to normalize UTC value:', utcValue, 'Event:', eventName);
+                                return;
+                            }
+                            const localDate = dayjs.utc(normalizedUTC).tz(userTimezone);
+                            if (!localDate.isValid()) {
+                                console.error('Invalid date after conversion:', normalizedUTC, utcValue, 'Event:', eventName);
+                                el.textContent = 'Invalid Date';
+                                return;
+                            }
+                            el.textContent = localDate.format('MMM D, YYYY');
+                        } catch (error) {
+                            console.error('Error converting date:', error, 'Original value:', utcValue);
+                            el.textContent = 'Error';
+                        }
+                    }
+                });
+
+                // Convert all event times
+                document.querySelectorAll('.event-time').forEach(function (el) {
+                    const utcStart = el.getAttribute('data-utc-start');
+                    const utcEnd = el.getAttribute('data-utc-end');
+                    if (utcStart) {
+                        try {
+                            // Get event name from parent card
+                            const eventCard = el.closest('.event-card');
+                            const eventName = eventCard ? eventCard.querySelector('h3')?.textContent?.trim() : 'Unknown';
+
+                            const normalizedStart = normalizeUTCString(utcStart);
+                            if (!normalizedStart) {
+                                console.error('Failed to normalize UTC start:', utcStart, 'Event:', eventName);
+                                return;
+                            }
+                            const localStart = dayjs.utc(normalizedStart).tz(userTimezone);
+                            if (!localStart.isValid()) {
+                                console.error('Invalid start date after conversion:', normalizedStart, utcStart, 'Event:', eventName);
+                                el.textContent = 'Invalid Date';
+                                return;
+                            }
+
+                            if (utcEnd) {
+                                const normalizedEnd = normalizeUTCString(utcEnd);
+                                const localEnd = dayjs.utc(normalizedEnd).tz(userTimezone);
+                                if (!localEnd.isValid()) {
+                                    console.error('Invalid end date after conversion:', normalizedEnd, utcEnd, 'Event:', eventName);
+                                    el.textContent = 'Invalid Date';
+                                    return;
+                                }
+                                const timeStr = localStart.format('h:mm A') + ' - ' + localEnd.format('h:mm A');
+                                el.textContent = timeStr;
+                            } else {
+                                el.textContent = localStart.format('h:mm A');
+                            }
+                        } catch (error) {
+                            console.error('Error converting time:', error, 'Start:', utcStart, 'End:', utcEnd);
+                            el.textContent = 'Error';
+                        }
+                    }
+                });
+            }
+
+            // Wait for DOM and Day.js to be ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', convertEventListTimes);
+            } else {
+                convertEventListTimes();
+            }
+        </script>
 
         <%- include('partials/footer') %>

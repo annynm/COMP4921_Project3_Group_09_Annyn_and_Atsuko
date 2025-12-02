@@ -6,15 +6,21 @@
         <h1 style="color: var(--error); text-align: center;">Oops! Something went wrong.</h1>
         <p style="text-align: center; margin: 1rem 0;"><%= error %></p>
         
-        <% if (errorDetails) { %>
+        <% if (typeof errorDetails !== 'undefined' && errorDetails) { %>
             <div style="margin: 2rem 0; padding: 1rem; background: rgba(0,0,0,0.05); border-radius: 8px;">
                 <h3 style="color: var(--greendale-blue-dark);">🔧 Debug Information</h3>
-                <p><strong>Error:</strong> <code style="background: rgba(0,102,204,0.1); padding: 2px 6px; border-radius: 4px;"><%= errorDetails.message %></code></p>
-                <p><strong>Route:</strong> <code style="background: rgba(0,102,204,0.1); padding: 2px 6px; border-radius: 4px;"><%= errorDetails.route %></code></p>
-                <details style="margin-top: 1rem;">
-                    <summary style="cursor: pointer; color: var(--greendale-blue); font-weight: 600;">📋 Show Full Stack Trace</summary>
-                    <pre style="background: #1e1e1e; color: #d4d4d4; padding: 1rem; overflow-x: auto; font-size: 0.8rem; margin-top: 0.5rem; border-radius: 4px;"><%= errorDetails.stack %></pre>
-                </details>
+                <% if (errorDetails.message) { %>
+                    <p><strong>Error:</strong> <code style="background: rgba(0,102,204,0.1); padding: 2px 6px; border-radius: 4px;"><%= errorDetails.message %></code></p>
+                <% } %>
+                <% if (errorDetails.route) { %>
+                    <p><strong>Route:</strong> <code style="background: rgba(0,102,204,0.1); padding: 2px 6px; border-radius: 4px;"><%= errorDetails.route %></code></p>
+                <% } %>
+                <% if (errorDetails.stack) { %>
+                    <details style="margin-top: 1rem;">
+                        <summary style="cursor: pointer; color: var(--greendale-blue); font-weight: 600;">📋 Show Full Stack Trace</summary>
+                        <pre style="background: #1e1e1e; color: #d4d4d4; padding: 1rem; overflow-x: auto; font-size: 0.8rem; margin-top: 0.5rem; border-radius: 4px;"><%= errorDetails.stack %></pre>
+                    </details>
+                <% } %>
             </div>
         <% } %>
         

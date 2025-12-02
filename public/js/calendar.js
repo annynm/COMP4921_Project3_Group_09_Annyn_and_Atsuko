@@ -2,6 +2,24 @@ let currentYear, currentMonth;
 let selectedDate = null;
 let selectedDayElement = null;
 
+// Initialize Day.js if available
+function initDayJSForCalendar() {
+  if (typeof dayjs !== 'undefined' && typeof dayjs_plugin_utc !== 'undefined' && typeof dayjs_plugin_timezone !== 'undefined') {
+    dayjs.extend(dayjs_plugin_utc);
+    dayjs.extend(dayjs_plugin_timezone);
+  }
+}
+
+// Try to initialize Day.js
+if (typeof dayjs !== 'undefined') {
+  initDayJSForCalendar();
+} else {
+  // Wait for Day.js to load
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(initDayJSForCalendar, 100);
+  });
+}
+
 document.addEventListener("DOMContentLoaded", function() {
   const urlParams = new URLSearchParams(window.location.search);
   const now = new Date();
@@ -19,6 +37,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
   updateMonthDisplay();
   setupNavigation();
+  // Attach click listeners to calendar days on initial page load
+  attachDayClickListeners();
   // load initial grid if you want to rely on AJAX for initial load:
   // loadCalendarGrid(); // Commented out because page already rendered server-side
 });
@@ -117,8 +137,11 @@ function attachDayClickListeners() {
   // but we only bind to non-empty ones below)
   const dayElements = document.querySelectorAll(".calendar-day:not(.empty)");
   dayElements.forEach((dayElement) => {
+    // Clone node and remove onclick attribute to avoid conflicts
+    const cloned = dayElement.cloneNode(true);
+    cloned.removeAttribute("onclick");
     // Replace node to remove previous listeners
-    dayElement.replaceWith(dayElement.cloneNode(true));
+    dayElement.replaceWith(cloned);
   });
 
   // Re-attach listeners to the new elements
@@ -220,13 +243,80 @@ function renderDayView(events, date) {
   html += "</div>";
 
   if (events && events.length > 0) {
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    // Helper function to normalize UTC string to ISO format
+    function normalizeUTCString(utcStr) {
+      if (!utcStr) return null;
+      
+      // Convert to string if it's not already
+      let str = String(utcStr).trim();
+      
+      // If it's already in ISO format with Z, return as-is
+      if (str.endsWith('Z') && str.includes('T')) {
+        return str;
+      }
+      
+      // Handle various formats
+      // Replace space with T if present
+      str = str.replace(' ', 'T');
+      
+      // Remove milliseconds if present
+      str = str.replace(/\.\d{3}$/, '');
+      
+      // Ensure we have seconds
+      if (!str.match(/T\d{2}:\d{2}:\d{2}/)) {
+        // Add :00 for seconds if missing
+        str = str.replace(/T(\d{2}:\d{2})$/, 'T$1:00');
+      }
+      
+      // Add Z if not present
+      if (!str.endsWith('Z')) {
+        str = str + 'Z';
+      }
+      
+      return str;
+    }
+    
     events.forEach(function(event) {
-      const start = new Date(event.start_datetime);
-      const end = new Date(event.end_datetime);
-      const startMinutes = start.getHours() * 60 + start.getMinutes();
-      const duration = (end - start) / (1000 * 60);
+      // Convert UTC to local timezone using Day.js if available
+      let start, end, startMinutes, duration;
+      
+      if (typeof dayjs !== 'undefined' && dayjs.utc && dayjs.tz) {
+        const normalizedStart = normalizeUTCString(event.start_datetime);
+        const normalizedEnd = normalizeUTCString(event.end_datetime);
+        start = dayjs.utc(normalizedStart).tz(userTimezone).toDate();
+        end = dayjs.utc(normalizedEnd).tz(userTimezone).toDate();
+      } else {
+        // Fallback to Date object (browser will use local timezone)
+        start = new Date(event.start_datetime);
+        end = new Date(event.end_datetime);
+      }
+      
+      startMinutes = start.getHours() * 60 + start.getMinutes();
+      duration = (end - start) / (1000 * 60);
       const top = (startMinutes / 60) * 60;
       const height = (duration / 60) * 60;
+
+      // Format time for display
+      let timeStr;
+      if (typeof dayjs !== 'undefined' && dayjs.utc && dayjs.tz) {
+        const normalizedStart = normalizeUTCString(event.start_datetime);
+        const normalizedEnd = normalizeUTCString(event.end_datetime);
+        const startLocal = dayjs.utc(normalizedStart).tz(userTimezone);
+        const endLocal = dayjs.utc(normalizedEnd).tz(userTimezone);
+        timeStr = startLocal.format('h:mm A') + ' - ' + endLocal.format('h:mm A');
+      } else {
+        timeStr = start.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        }) + " - " + end.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
+      }
 
       html += '<div class="event-overlay" ';
       html +=
@@ -240,20 +330,7 @@ function renderDayView(events, date) {
       html +=
         "onclick=\"window.location.href='/event/" + event.event_id + "'\">";
       html += '<div class="event-overlay-name">' + event.event_name + "</div>";
-      html +=
-        '<div class="event-overlay-time">' +
-        start.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        }) +
-        " - " +
-        end.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        }) +
-        "</div>";
+      html += '<div class="event-overlay-time">' + timeStr + "</div>";
       if (event.room_name) {
         html += '<div class="event-overlay-room">' + event.room_name + "</div>";
       }

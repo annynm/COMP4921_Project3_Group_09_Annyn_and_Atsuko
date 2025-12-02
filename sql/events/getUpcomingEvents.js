@@ -15,8 +15,8 @@ module.exports = (userId, limit = 20) => ({
                 e.event_id,
                 e.event_name,
                 e.event_description,
-                e.start_datetime,
-                e.end_datetime,
+                e.start_datetime AT TIME ZONE 'UTC' as start_datetime,
+                e.end_datetime AT TIME ZONE 'UTC' as end_datetime,
                 e.privacy_type,
                 e.max_capacity,
                 e.owner_id,
@@ -35,13 +35,16 @@ module.exports = (userId, limit = 20) => ({
                     SELECT 1 FROM user_friends uf WHERE uf.friend_id = e.owner_id
                 ))
             )
-            GROUP BY e.event_id, r.room_name
+            GROUP BY e.event_id, e.event_name, e.event_description, e.start_datetime, e.end_datetime, e.privacy_type, e.max_capacity, e.owner_id, r.room_name
         ),
         user_rsvp_status AS (
             SELECT event_id, status FROM rsvp WHERE user_id = $1
         ),
         user_attending_events AS (
-            SELECT e.event_id, e.start_datetime, e.end_datetime
+            SELECT 
+                e.event_id,
+                e.start_datetime AT TIME ZONE 'UTC' as start_datetime,
+                e.end_datetime AT TIME ZONE 'UTC' as end_datetime
             FROM event e
             INNER JOIN rsvp r ON e.event_id = r.event_id
             WHERE r.user_id = $1 
@@ -52,7 +55,16 @@ module.exports = (userId, limit = 20) => ({
         ),
         events_with_conflicts AS (
             SELECT 
-                ve.*,
+                ve.event_id,
+                ve.event_name,
+                ve.event_description,
+                ve.start_datetime,
+                ve.end_datetime,
+                ve.privacy_type,
+                ve.max_capacity,
+                ve.owner_id,
+                ve.room_name,
+                ve.attending_count,
                 COALESCE(urs.status, 'pending') as user_rsvp_status,
                 CASE 
                     WHEN ve.max_capacity IS NULL THEN 'Unlimited'

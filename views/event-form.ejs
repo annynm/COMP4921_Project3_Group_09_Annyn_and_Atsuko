@@ -44,16 +44,20 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="start_datetime">Start Date & Time (UTC)</label>
+                                    <label for="start_datetime">Start Date & Time</label>
                                     <input type="datetime-local" id="start_datetime" name="start_datetime"
                                         value="<%= formatDateTimeLocal(formData.start_datetime) %>" required>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="end_datetime">End Date & Time (UTC)</label>
+                                    <label for="end_datetime">End Date & Time</label>
                                     <input type="datetime-local" id="end_datetime" name="end_datetime"
                                         value="<%= formatDateTimeLocal(formData.end_datetime) %>" required>
                                 </div>
+
+                                <!-- Hidden inputs for UTC values -->
+                                <input type="hidden" id="start_datetime_utc" name="start_datetime">
+                                <input type="hidden" id="end_datetime_utc" name="end_datetime">
 
                                 <div class="form-group">
                                     <label for="recurring_type">Recurring</label>
@@ -137,7 +141,117 @@
                 </div>
             </div>
 
+            <!-- Day.js from CDN -->
+            <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/utc.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/timezone.js"></script>
+            <script src="/js/dayjs-setup.js"></script>
+
             <script>
+                // Initialize Day.js when it's ready
+                function initDayJS() {
+                    if (typeof dayjs === 'undefined' || typeof dayjs_plugin_utc === 'undefined' || typeof dayjs_plugin_timezone === 'undefined') {
+                        setTimeout(initDayJS, 100);
+                        return;
+                    }
+
+                    dayjs.extend(dayjs_plugin_utc);
+                    dayjs.extend(dayjs_plugin_timezone);
+
+                    // Get user's timezone
+                    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+                    // Helper function to normalize UTC string to ISO format
+                    function normalizeUTCString(utcStr) {
+                        if (!utcStr) return null;
+
+                        // Convert to string if it's not already
+                        let str = String(utcStr).trim();
+
+                        // If it's already in ISO format with Z, return as-is
+                        if (str.endsWith('Z') && str.includes('T')) {
+                            return str;
+                        }
+
+                        // Handle various formats
+                        // Replace space with T if present
+                        str = str.replace(' ', 'T');
+
+                        // Remove milliseconds if present
+                        str = str.replace(/\.\d{3}$/, '');
+
+                        // Ensure we have seconds
+                        if (!str.match(/T\d{2}:\d{2}:\d{2}/)) {
+                            // Add :00 for seconds if missing
+                            str = str.replace(/T(\d{2}:\d{2})$/, 'T$1:00');
+                        }
+
+                        // Add Z if not present
+                        if (!str.endsWith('Z')) {
+                            str = str + 'Z';
+                        }
+
+                        return str;
+                    }
+
+                    // Convert UTC to local timezone for form display (edit mode)
+                    <% if (isEditMode && formData.start_datetime) { %>
+                    const startUTC = '<%= formData.start_datetime %>';
+                        const endUTC = '<%= formData.end_datetime %>';
+
+                        if (startUTC && endUTC) {
+                            try {
+                                // formatForForm returns YYYY-MM-DDTHH:mm format (UTC, no Z)
+                                // We need to add Z to make it a proper UTC ISO string
+                                const normalizedStart = normalizeUTCString(startUTC);
+                                const normalizedEnd = normalizeUTCString(endUTC);
+
+                                const startLocal = dayjs.utc(normalizedStart).tz(userTimezone).format('YYYY-MM-DDTHH:mm');
+                                const endLocal = dayjs.utc(normalizedEnd).tz(userTimezone).format('YYYY-MM-DDTHH:mm');
+
+                                const startInput = document.getElementById('start_datetime');
+                                const endInput = document.getElementById('end_datetime');
+                                if (startInput) startInput.value = startLocal;
+                                if (endInput) endInput.value = endLocal;
+                            } catch (error) {
+                                console.error('Error converting form times:', error, startUTC, endUTC);
+                            }
+                        }
+                    <% } %>
+
+                    // Handle form submission: convert local to UTC
+                    const form = document.getElementById('eventForm');
+                    form.addEventListener('submit', function (e) {
+                        const startLocal = document.getElementById('start_datetime').value;
+                        const endLocal = document.getElementById('end_datetime').value;
+
+                        if (startLocal && endLocal && typeof dayjs !== 'undefined' && dayjs.tz) {
+                            // Convert local time to UTC
+                            const startUTC = dayjs.tz(startLocal, userTimezone).utc().format('YYYY-MM-DDTHH:mm:ss[Z]');
+                            const endUTC = dayjs.tz(endLocal, userTimezone).utc().format('YYYY-MM-DDTHH:mm:ss[Z]');
+
+                            // Set UTC values in hidden inputs
+                            document.getElementById('start_datetime_utc').value = startUTC;
+                            document.getElementById('end_datetime_utc').value = endUTC;
+
+                            // Clear the local datetime inputs so backend receives UTC values
+                            document.getElementById('start_datetime').name = '';
+                            document.getElementById('end_datetime').name = '';
+
+                            // Rename hidden inputs to the original names
+                            document.getElementById('start_datetime_utc').name = 'start_datetime';
+                            document.getElementById('end_datetime_utc').name = 'end_datetime';
+                        }
+                    });
+                }
+
+                // Wait for DOM and Day.js to be ready
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initDayJS);
+                } else {
+                    initDayJS();
+                }
+
                 const picker = document.getElementById("color");
                 const preview = document.getElementById("colorPreview");
 

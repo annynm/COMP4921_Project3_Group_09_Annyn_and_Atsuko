@@ -27,13 +27,10 @@
 
                                 <div class="event-meta">
                                     <p><strong>Date:</strong>
-                                        <%= new Date(event.start_datetime).toLocaleDateString() %>
+                                        <span class="event-date" data-utc="<%= event.start_datetime %>">Loading...</span>
                                     </p>
                                     <p><strong>Time:</strong>
-                                        <%= new Date(event.start_datetime).toLocaleTimeString([], {hour: '2-digit' ,
-                                            minute:'2-digit'}) %> -
-                                            <%= new Date(event.end_datetime).toLocaleTimeString([], {hour: '2-digit' ,
-                                                minute:'2-digit'}) %>
+                                        <span class="event-time" data-utc-start="<%= event.start_datetime %>" data-utc-end="<%= event.end_datetime %>">Loading...</span>
                                     </p>
                                     <% if (event.room_name) { %>
                                         <p><strong>Location:</strong>
@@ -73,5 +70,118 @@
                     </div>
                     <% } %>
         </div>
+
+        <!-- Day.js from CDN -->
+        <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/utc.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/timezone.js"></script>
+        <script>
+            // Initialize Day.js and convert UTC to local timezone
+            function convertDeletedEventTimes() {
+                if (typeof dayjs === 'undefined' || typeof dayjs_plugin_utc === 'undefined' || typeof dayjs_plugin_timezone === 'undefined') {
+                    setTimeout(convertDeletedEventTimes, 100);
+                    return;
+                }
+                
+                dayjs.extend(dayjs_plugin_utc);
+                dayjs.extend(dayjs_plugin_timezone);
+                
+                const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                
+                // Helper function to normalize UTC string to ISO format
+                function normalizeUTCString(utcStr) {
+                    if (!utcStr) return null;
+                    
+                    let str = String(utcStr).trim();
+                    
+                    if (str.endsWith('Z') && str.includes('T')) {
+                        return str;
+                    }
+                    
+                    str = str.replace(' ', 'T');
+                    str = str.replace(/\.\d{3}$/, '');
+                    if (!str.match(/T\d{2}:\d{2}:\d{2}/)) {
+                        str = str.replace(/T(\d{2}:\d{2})$/, 'T$1:00');
+                    }
+                    if (!str.endsWith('Z')) {
+                        str = str + 'Z';
+                    }
+                    
+                    return str;
+                }
+                
+                // Convert all event dates
+                document.querySelectorAll('.event-date').forEach(function(el) {
+                    const utcValue = el.getAttribute('data-utc');
+                    if (utcValue) {
+                        try {
+                            const normalizedUTC = normalizeUTCString(utcValue);
+                            if (!normalizedUTC) {
+                                console.error('Failed to normalize UTC value:', utcValue);
+                                return;
+                            }
+                            const localDate = dayjs.utc(normalizedUTC).tz(userTimezone);
+                            if (!localDate.isValid()) {
+                                console.error('Invalid date after conversion:', normalizedUTC, utcValue);
+                                el.textContent = 'Invalid Date';
+                                return;
+                            }
+                            el.textContent = localDate.format('MMM D, YYYY');
+                        } catch (error) {
+                            console.error('Error converting date:', error, 'Original value:', utcValue);
+                            el.textContent = 'Error';
+                        }
+                    }
+                });
+                
+                // Convert all event times
+                document.querySelectorAll('.event-time').forEach(function(el) {
+                    const utcStart = el.getAttribute('data-utc-start');
+                    const utcEnd = el.getAttribute('data-utc-end');
+                    if (utcStart) {
+                        try {
+                            const normalizedStart = normalizeUTCString(utcStart);
+                            if (!normalizedStart) {
+                                console.error('Failed to normalize UTC start:', utcStart);
+                                return;
+                            }
+                            const localStart = dayjs.utc(normalizedStart).tz(userTimezone);
+                            if (!localStart.isValid()) {
+                                console.error('Invalid start date after conversion:', normalizedStart, utcStart);
+                                el.textContent = 'Invalid Date';
+                                return;
+                            }
+                            
+                            if (utcEnd) {
+                                const normalizedEnd = normalizeUTCString(utcEnd);
+                                if (!normalizedEnd) {
+                                    console.error('Failed to normalize UTC end:', utcEnd);
+                                    return;
+                                }
+                                const localEnd = dayjs.utc(normalizedEnd).tz(userTimezone);
+                                if (!localEnd.isValid()) {
+                                    console.error('Invalid end date after conversion:', normalizedEnd, utcEnd);
+                                    el.textContent = 'Invalid Date';
+                                    return;
+                                }
+                                el.textContent = localStart.format('h:mm A') + ' - ' + localEnd.format('h:mm A');
+                            } else {
+                                el.textContent = localStart.format('h:mm A');
+                            }
+                        } catch (error) {
+                            console.error('Error converting time:', error, 'Start:', utcStart, 'End:', utcEnd);
+                            el.textContent = 'Error';
+                        }
+                    }
+                });
+            }
+            
+            // Wait for DOM and Day.js to be ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', convertDeletedEventTimes);
+            } else {
+                convertDeletedEventTimes();
+            }
+        </script>
 
         <%- include('partials/footer') %>

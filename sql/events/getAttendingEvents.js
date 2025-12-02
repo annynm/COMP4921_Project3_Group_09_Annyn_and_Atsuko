@@ -13,8 +13,8 @@ module.exports = (userId, limit = 20) => ({
             e.event_id,
             e.event_name,
             e.event_description,
-            e.start_datetime,
-            e.end_datetime,
+            e.start_datetime AT TIME ZONE 'UTC' as start_datetime,
+            e.end_datetime AT TIME ZONE 'UTC' as end_datetime,
             r.room_name,
             COUNT(*) AS attending_count
         FROM event e

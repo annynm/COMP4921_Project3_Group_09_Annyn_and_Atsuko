@@ -7,8 +7,8 @@ module.exports = (userId, limit = 50) => ({
                 e.event_id,
                 e.event_name,
                 e.event_description,
-                e.start_datetime,
-                e.end_datetime,
+                e.start_datetime AT TIME ZONE 'UTC' as start_datetime,
+                e.end_datetime AT TIME ZONE 'UTC' as end_datetime,
                 e.privacy_type,
                 e.max_capacity,
                 e.deleted_at,
@@ -27,15 +27,15 @@ module.exports = (userId, limit = 50) => ({
             LEFT JOIN rsvp rsvp2 ON e.event_id = rsvp2.event_id
             WHERE rsvp.user_id = $1
             AND e.is_deleted = TRUE
-            GROUP BY e.event_id, u.user_id, r.room_id, rsvp.status, e.deleted_at
+            GROUP BY e.event_id, u.user_id, r.room_id, rsvp.status, e.deleted_at, e.start_datetime, e.end_datetime
         ),
         owned_events AS (
             SELECT 
                 e.event_id,
                 e.event_name,
                 e.event_description,
-                e.start_datetime,
-                e.end_datetime,
+                e.start_datetime AT TIME ZONE 'UTC' as start_datetime,
+                e.end_datetime AT TIME ZONE 'UTC' as end_datetime,
                 e.privacy_type,
                 e.max_capacity,
                 e.deleted_at,
@@ -53,7 +53,7 @@ module.exports = (userId, limit = 50) => ({
             LEFT JOIN rsvp ON e.event_id = rsvp.event_id
             WHERE e.owner_id = $1
             AND e.is_deleted = TRUE
-            GROUP BY e.event_id, u.user_id, r.room_id, e.deleted_at
+            GROUP BY e.event_id, u.user_id, r.room_id, e.deleted_at, e.start_datetime, e.end_datetime
         ),
         deleted_events AS (
             SELECT * FROM attended_events

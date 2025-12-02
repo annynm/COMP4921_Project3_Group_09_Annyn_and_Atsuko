@@ -3,7 +3,25 @@ module.exports = (eventId, userId) => ({
     text: `
         WITH event_info AS (
             SELECT 
-                e.*,
+                e.event_id,
+                e.event_name,
+                e.owner_id,
+                e.event_description,
+                e.is_recurring,
+                e.recurring_id,
+                e.room_id,
+                e.color,
+                e.is_all_day,
+                e.start_datetime AT TIME ZONE 'UTC' as start_datetime,
+                e.end_datetime AT TIME ZONE 'UTC' as end_datetime,
+                e.created_at,
+                e.updated_at,
+                e.is_deleted,
+                e.deleted_at,
+                e.is_cancelled,
+                e.privacy_type,
+                e.max_capacity,
+                e.allow_friend_invites,
                 r.room_name,
                 r.capacity as room_capacity
             FROM event e

@@ -83,11 +83,46 @@ router.get("/calendar/grid", calendarGridLogic);
 router.get("/events/history", async (req, res) => {
   try {
     const result = await pool.query(getEventHistorySQL(req.session.user.id));
+
+    // Convert Date objects to ISO 8601 strings for frontend
+    // PostgreSQL returns timestamps with time zone (after AT TIME ZONE 'UTC'), so we can use it directly
+    const convertToUTCISO = (dateValue) => {
+      if (!dateValue) return null;
+
+      if (dateValue instanceof Date) {
+        return dateValue.toISOString();
+      }
+
+      const str = String(dateValue);
+      if (str.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)) {
+        return str.replace(' ', 'T') + 'Z';
+      }
+
+      if (str.includes('T') || str.includes('Z') || str.match(/[+-]\d{2}:\d{2}$/)) {
+        const dateObj = new Date(str);
+        if (!isNaN(dateObj.getTime())) {
+          return dateObj.toISOString();
+        }
+      }
+
+      return null;
+    };
+
+    const events = result.rows.map(event => {
+      if (event.start_datetime) {
+        event.start_datetime = convertToUTCISO(event.start_datetime);
+      }
+      if (event.end_datetime) {
+        event.end_datetime = convertToUTCISO(event.end_datetime);
+      }
+      return event;
+    });
+
     res.render("history", {
       title: "Event History",
       user: req.session.user,
       activePage: "events",
-      events: result.rows,
+      events: events,
     });
   } catch (error) {
     console.error("History error:", error);
@@ -104,12 +139,46 @@ router.get("/events/deleted", async (req, res) => {
     const getDeletedEventsSQL = require("../sql/events/getDeletedEvents");
     const result = await pool.query(getDeletedEventsSQL(req.session.user.id));
 
+    // Convert Date objects to ISO 8601 strings for frontend
+    // PostgreSQL returns timestamps with time zone (after AT TIME ZONE 'UTC'), so we can use it directly
+    const convertToUTCISO = (dateValue) => {
+      if (!dateValue) return null;
+
+      if (dateValue instanceof Date) {
+        return dateValue.toISOString();
+      }
+
+      const str = String(dateValue);
+      if (str.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)) {
+        return str.replace(' ', 'T') + 'Z';
+      }
+
+      if (str.includes('T') || str.includes('Z') || str.match(/[+-]\d{2}:\d{2}$/)) {
+        const dateObj = new Date(str);
+        if (!isNaN(dateObj.getTime())) {
+          return dateObj.toISOString();
+        }
+      }
+
+      return null;
+    };
+
+    const events = result.rows.map(event => {
+      if (event.start_datetime) {
+        event.start_datetime = convertToUTCISO(event.start_datetime);
+      }
+      if (event.end_datetime) {
+        event.end_datetime = convertToUTCISO(event.end_datetime);
+      }
+      return event;
+    });
+
     // deleted_at_vancouver is already formatted in SQL query
     res.render("deleted-events", {
       title: "Deleted Events",
       user: req.session.user,
       activePage: "events",
-      events: result.rows,
+      events: events,
     });
   } catch (error) {
     console.error("Deleted events error:", error);

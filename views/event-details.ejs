@@ -31,17 +31,47 @@
                     </div>
 
                     <div>
-                        <h3 style="color: var(--greendale-blue);">Capacity</h3>
-                        <p>
-                            <%= event.attending_count %> attending
-                        </p>
+                        <h3 style="color: var(--greendale-blue);">Attendance</h3>
+                        
+                        <% if (event.attending_users && event.attending_users.length > 0) { %>
+                            <div style="margin-bottom: 1rem;">
+                                <p style="color: var(--success); font-weight: 600; margin-bottom: 0.5rem;">
+                                    <%= event.attending_users.length %> attending
+                                </p>
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                    <% event.attending_users.forEach(user => { %>
+                                        <span class="status-attending" style="font-size: 0.85rem; padding: 0.25rem 0.75rem;">
+                                            <%= user.fname %> <%= user.lname %>
+                                        </span>
+                                    <% }); %>
+                                </div>
+                            </div>
+                        <% } else { %>
+                            <p style="color: var(--text-secondary); margin-bottom: 1rem;">0 attending</p>
+                        <% } %>
+                        
+                        <% if (event.pending_invites && event.pending_invites.length > 0) { %>
+                            <div style="margin-bottom: 1rem;">
+                                <p style="color: var(--warning); font-weight: 600; margin-bottom: 0.5rem;">
+                                    <%= event.pending_invites.length %> invited
+                                </p>
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                    <% event.pending_invites.forEach(user => { %>
+                                        <span class="status-conflict" style="font-size: 0.85rem; padding: 0.25rem 0.75rem;">
+                                            <%= user.fname %> <%= user.lname %>
+                                        </span>
+                                    <% }); %>
+                                </div>
+                            </div>
+                        <% } %>
+                        
                         <% if (event.max_capacity) { %>
-                            <p>
-                                <%= event.max_capacity - event.attending_count %> spots remaining
+                            <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                                <strong><%= event.max_capacity - event.attending_count %> spots remaining</strong>
                             </p>
-                            <% } else { %>
-                                <p>Unlimited spots available</p>
-                                <% } %>
+                        <% } else { %>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem;">Unlimited spots available</p>
+                        <% } %>
                     </div>
                 </div>
 
@@ -82,11 +112,10 @@
         </div>
 
         <!-- Day.js from CDN -->
-        <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/utc.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/timezone.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js "></script>
+        <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/utc.js "></script>
+        <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/timezone.js "></script>
         <script>
-            // Initialize Day.js and convert UTC to local timezone
             function convertEventTimes() {
                 if (typeof dayjs === 'undefined' || typeof dayjs_plugin_utc === 'undefined' || typeof dayjs_plugin_timezone === 'undefined') {
                     setTimeout(convertEventTimes, 100);
@@ -98,31 +127,24 @@
 
                 const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-                // Helper function to normalize UTC string to ISO format
-                // Server now sends ISO strings, this is mainly for safety
                 function normalizeUTCString(utcStr) {
                     if (!utcStr) return null;
 
-                    // If it's already a Date object, convert to ISO
                     if (utcStr instanceof Date) {
                         return utcStr.toISOString();
                     }
 
-                    // Convert to string
                     let str = String(utcStr).trim();
 
-                    // If it's already in ISO format with Z, return as-is
                     if (str.endsWith('Z') && str.includes('T')) {
                         return str;
                     }
 
-                    // Try to parse as Date (handles ISO strings without Z, and other formats)
                     const dateObj = new Date(str);
                     if (!isNaN(dateObj.getTime())) {
                         return dateObj.toISOString();
                     }
 
-                    // Fallback: try to fix common formats
                     str = str.replace(' ', 'T');
                     str = str.replace(/\.\d{3}$/, '');
                     if (!str.match(/T\d{2}:\d{2}:\d{2}/)) {
@@ -156,14 +178,12 @@
                             return;
                         }
 
-                        // Format date
                         const dateStr = startLocal.format('MMMM D, YYYY');
                         const dateEl = document.getElementById('event-date');
                         if (dateEl) {
                             dateEl.textContent = dateStr;
                         }
 
-                        // Format time
                         const timeStr = startLocal.format('h:mm A') + ' - ' + endLocal.format('h:mm A');
                         const timeEl = document.getElementById('event-time');
                         if (timeEl) {
@@ -175,7 +195,6 @@
                 }
             }
 
-            // Wait for DOM and Day.js to be ready
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', convertEventTimes);
             } else {
@@ -184,7 +203,6 @@
         </script>
 
         <script>
-            // Handle Manage Invites button click
             document.addEventListener('DOMContentLoaded', function () {
                 const manageInvitesBtn = document.getElementById('manage-invites-btn');
                 const invitesSection = document.getElementById('invites-section');
@@ -193,7 +211,6 @@
                     manageInvitesBtn.addEventListener('click', function () {
                         if (invitesSection.style.display === 'none' || !invitesSection.style.display) {
                             invitesSection.style.display = 'block';
-                            // Load invite data when section is shown
                             if (typeof window.loadInviteData === 'function') {
                                 window.loadInviteData();
                             }

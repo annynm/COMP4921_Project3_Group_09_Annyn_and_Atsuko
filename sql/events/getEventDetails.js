@@ -1,55 +1,80 @@
-module.exports = (eventId, userId) => ({
-    text: `
-        WITH event_info AS (
-            SELECT 
-                e.event_id,
-                e.event_name,
-                e.event_description,
-                e.start_datetime AT TIME ZONE 'UTC' as start_datetime,
-                e.end_datetime AT TIME ZONE 'UTC' as end_datetime,
-                e.room_id,
-                e.color,
-                e.is_all_day,
-                e.privacy_type,
-                e.max_capacity,
-                e.allow_friend_invites,
-                e.owner_id,
-                e.created_at,
-                e.updated_at,
-                e.is_deleted,
-                u.user_name as owner_name,
-                u.fname as owner_fname,
-                u.lname as owner_lname,
-                r.room_name,
-                r.capacity as room_capacity,
-                COUNT(rsvp.rsvp_id) FILTER (WHERE rsvp.status = 'accepted') as attending_count
-            FROM event e
-            JOIN users u ON e.owner_id = u.user_id
-            LEFT JOIN rooms r ON e.room_id = r.room_id
-            LEFT JOIN rsvp ON e.event_id = rsvp.event_id
-            WHERE e.event_id = $1 AND e.is_deleted = FALSE
-            GROUP BY e.event_id, u.user_id, r.room_id, e.start_datetime, e.end_datetime, e.room_id, e.color, e.is_all_day, e.privacy_type, e.max_capacity, e.allow_friend_invites, e.owner_id, e.created_at, e.updated_at, e.is_deleted, e.event_name, e.event_description
-        ),
-        user_status AS (
-            SELECT status FROM rsvp WHERE event_id = $1 AND user_id = $2
-        ),
-        user_permissions AS (
-            SELECT 
-                EXISTS (
-                    SELECT 1 FROM event_admin WHERE event_id = $1 AND user_id = $2
-                ) as is_admin,
-                EXISTS (
-                    SELECT 1 FROM event WHERE event_id = $1 AND owner_id = $2
-                ) as is_owner
-        )
-        SELECT 
-            ei.*,
-            COALESCE(us.status, 'pending') as user_status,  -- CHANGED: default to 'pending'
-            ia.is_admin,
-            ia.is_owner
-        FROM event_info ei
-        CROSS JOIN user_permissions ia
-        LEFT JOIN user_status us ON true
-    `,
-    values: [eventId, userId],
-});
+const getEventDetailsSQL = (eventId, userId) => {
+    return `
+    SELECT 
+      e.*,
+      u.fname as owner_fname,
+      u.lname as owner_lname,
+      r.room_name,
+      r.capacity as room_capacity,
+      COALESCE(att.attending_count, 0) as attending_count,
+      COALESCE(pending.pending_count, 0) as pending_count,
+      COALESCE(declined.declined_count, 0) as declined_count,
+      CASE 
+        WHEN e.owner_id = ${userId} THEN true
+        ELSE false
+      END as is_owner,
+      CASE 
+        WHEN EXISTS (
+          SELECT 1 FROM event_admin ea 
+          WHERE ea.event_id = e.event_id AND ea.user_id = ${userId}
+        ) THEN true
+        ELSE false
+      END as is_admin,
+      COALESCE(my_rsvp.status, 'pending') as user_status,
+      -- Get attending users
+      COALESCE(
+        (
+          SELECT json_agg(
+            json_build_object(
+              'user_id', attending_u.user_id,
+              'fname', attending_u.fname,
+              'lname', attending_u.lname
+            )
+          )
+          FROM rsvp attending_r
+          JOIN users attending_u ON attending_u.user_id = attending_r.user_id
+          WHERE attending_r.event_id = e.event_id 
+            AND attending_r.status = 'accepted'
+        ), '[]'::json
+      ) as attending_users,
+      -- Get pending invites
+      COALESCE(
+        (
+          SELECT json_agg(
+            json_build_object(
+              'user_id', pending_u.user_id,
+              'fname', pending_u.fname,
+              'lname', pending_u.lname
+            )
+          )
+          FROM rsvp pending_r
+          JOIN users pending_u ON pending_u.user_id = pending_r.user_id
+          WHERE pending_r.event_id = e.event_id 
+            AND pending_r.status = 'pending'
+        ), '[]'::json
+      ) as pending_invites
+    FROM event e
+    JOIN users u ON u.user_id = e.owner_id
+    LEFT JOIN rooms r ON r.room_id = e.room_id
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*) as attending_count
+      FROM rsvp
+      WHERE event_id = e.event_id AND status = 'accepted'
+    ) att ON true
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*) as pending_count
+      FROM rsvp
+      WHERE event_id = e.event_id AND status = 'pending'
+    ) pending ON true
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*) as declined_count
+      FROM rsvp
+      WHERE event_id = e.event_id AND status = 'declined'
+    ) declined ON true
+    LEFT JOIN rsvp my_rsvp ON my_rsvp.event_id = e.event_id AND my_rsvp.user_id = ${userId}
+    WHERE e.event_id = ${eventId}
+      AND e.is_deleted = false;
+  `;
+};
+
+module.exports = getEventDetailsSQL;

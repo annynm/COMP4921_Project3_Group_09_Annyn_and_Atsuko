@@ -42,9 +42,6 @@ const loginPost = async (req, res) => {
     req.session.user = {
       id: user.user_id,
       username: user.user_name,
-      email: user.email,
-      fname: user.fname,
-      lname: user.lname,
     };
 
     res.redirect("/events");
@@ -84,7 +81,6 @@ const registerPost = async (req, res) => {
     const { username, email, fname, lname, password, confirm_password } =
       req.body;
 
-    // Trim whitespace from inputs
     const trimmedData = {
       username: username.trim(),
       email: email.trim(),
@@ -94,12 +90,9 @@ const registerPost = async (req, res) => {
       confirm_password: confirm_password,
     };
 
-    // --- PASSWORD VALIDATION (Meets Project Criteria) ---
-    // Must be: >=10 chars, uppercase, lowercase, number, symbol
     const passwordRegex =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/;
 
-    // Collect all validation errors
     const errors = [];
 
     if (trimmedData.password !== trimmedData.confirm_password) {
@@ -112,24 +105,21 @@ const registerPost = async (req, res) => {
       );
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedData.email)) {
       errors.push("Invalid email format");
     }
 
-    // If any errors, re-render form with error messages and preserved data
     if (errors.length > 0) {
       return res.render("register", {
         title: "Register",
         user: null,
         activePage: "register",
-        error: errors.join(". "), // Join multiple errors for display
-        formData: trimmedData, // Preserve user input
+        error: errors.join(". "),
+        formData: trimmedData,
       });
     }
 
-    // Check username availability
     const existingUser = await User.findByUsername(trimmedData.username);
     if (existingUser) {
       return res.render("register", {
@@ -141,7 +131,6 @@ const registerPost = async (req, res) => {
       });
     }
 
-    // Check email availability
     const existingEmail = await User.findByEmail(trimmedData.email);
     if (existingEmail) {
       return res.render("register", {
@@ -153,7 +142,6 @@ const registerPost = async (req, res) => {
       });
     }
 
-    // All validations passed - create user with hashed password
     const user = await User.create({
       username: trimmedData.username,
       email: trimmedData.email,
@@ -162,20 +150,15 @@ const registerPost = async (req, res) => {
       password: trimmedData.password,
     });
 
-    // Auto-login after successful registration
     req.session.user = {
       id: user.user_id,
       username: user.user_name,
-      email: user.email,
-      fname: user.fname,
-      lname: user.lname,
     };
 
     res.redirect("/events");
   } catch (error) {
     console.error("Registration error:", error);
 
-    // Handle database unique constraint violations (backup validation)
     if (error.code === "23505") {
       return res.render("register", {
         title: "Register",

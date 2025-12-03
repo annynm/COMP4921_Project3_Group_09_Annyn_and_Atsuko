@@ -9,7 +9,6 @@
         <div id="invites-error" style="color: var(--error); margin-bottom: 1rem; display: none;"></div>
 
         <div id="friends-list" style="margin-bottom: 1.5rem;">
-            <!-- Friends will be loaded here -->
         </div>
 
         <div style="display: flex; gap: 1rem; align-items: center;">
@@ -24,6 +23,17 @@
     </div>
 </div>
 
+<div id="delete-invite-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div class="glass-card" style="max-width: 400px; margin: 10% auto; padding: 2rem;">
+        <h3 style="color: var(--error); margin-bottom: 1rem;">Cancel Invitation</h3>
+        <p id="delete-invite-message" style="margin-bottom: 1.5rem;"></p>
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+            <button id="cancel-delete-btn" class="btn btn-secondary">No</button>
+            <button id="confirm-delete-btn" class="btn btn-danger">Yes</button>
+        </div>
+    </div>
+</div>
+
 <script>
     (function () {
         const eventId = '<%= event.event_id %>';
@@ -34,8 +44,8 @@
         <% } %>
             let friends = [];
         let eventInviteInfo = null;
+        let pendingDelete = null;
 
-        // Load friends and event invite info
         async function loadInviteData() {
             const invitesSection = document.getElementById('invites-section');
             const loadingDiv = document.getElementById('invites-loading');
@@ -43,7 +53,6 @@
             const noFriendsDiv = document.getElementById('no-friends-message');
 
             try {
-                // Load friends
                 const friendsResponse = await fetch('/friends/accepted');
                 if (!friendsResponse.ok) {
                     throw new Error(`Failed to load friends: ${friendsResponse.status} ${friendsResponse.statusText}`);
@@ -53,13 +62,11 @@
                 if (friendsData.success && friendsData.friends.length > 0) {
                     friends = friendsData.friends;
 
-                    // Load event invite info
                     const infoResponse = await fetch(`/event/${eventId}/invites/info`);
                     if (!infoResponse.ok) {
                         throw new Error(`Failed to load event invite info: ${infoResponse.status} ${infoResponse.statusText}`);
                     }
 
-                    // Check if response is JSON
                     const contentType = infoResponse.headers.get('content-type');
                     if (!contentType || !contentType.includes('application/json')) {
                         const text = await infoResponse.text();
@@ -94,27 +101,28 @@
                 return;
             }
 
-            // Get already invited user IDs (only pending or accepted, not declined)
-            // declined users can be re-invited
             const invitedUserMap = new Map();
             (eventInviteInfo.invited_users || []).forEach(u => {
                 if (u.status === 'pending' || u.status === 'accepted') {
-                    invitedUserMap.set(u.user_id, u.status);
+                    invitedUserMap.set(u.user_id, u);
                 }
             });
 
             const friendsHtml = friends.map(friend => {
-                const inviteStatus = invitedUserMap.get(friend.user_id);
-                const isInvited = inviteStatus !== undefined;
+                const inviteInfo = invitedUserMap.get(friend.user_id);
+                const isInvited = inviteInfo !== undefined;
                 const disabledAttr = isInvited ? 'disabled' : '';
                 const checkedAttr = isInvited ? 'checked' : '';
 
                 let statusText = '';
+                let removeButton = '';
+                
                 if (isInvited) {
-                    if (inviteStatus === 'pending') {
-                        statusText = '<span style="margin-left: 1rem; color: var(--text-secondary); font-size: 0.9em;">(Already invited)</span>';
-                    } else if (inviteStatus === 'accepted') {
-                        statusText = '<span style="margin-left: 1rem; color: var(--text-secondary); font-size: 0.9em;">(Already attending)</span>';
+                    if (inviteInfo.status === 'pending') {
+                        statusText = '<span style="margin-left: 1rem; color: var(--warning); font-size: 0.9em;">(Pending invitation)</span>';
+                        removeButton = `<button class="btn btn-danger" onclick="showDeleteConfirm(${friend.user_id}, '${escapeHtml(friend.fname)} ${escapeHtml(friend.lname)}', 'pending')" style="margin-left: auto; padding: 0.25rem 0.5rem; font-size: 0.8rem;">×</button>`;
+                    } else if (inviteInfo.status === 'accepted') {
+                        statusText = '<span style="margin-left: 1rem; color: var(--success); font-size: 0.9em;">(Attending)</span>';
                     }
                 }
 
@@ -137,6 +145,7 @@
                             </span>
                             ${statusText}
                         </label>
+                        ${removeButton}
                     </div>
                 `;
             }).join('');
@@ -150,7 +159,61 @@
             return div.innerHTML;
         }
 
-        // Handle invite button click
+        window.showDeleteConfirm = function(userId, userName, status) {
+            pendingDelete = { userId, userName, status };
+            const modal = document.getElementById('delete-invite-modal');
+            const message = document.getElementById('delete-invite-message');
+            
+            let statusText = status === 'pending' ? 'pending invitation' : 'accepted invitation';
+            message.textContent = `Are you sure you want to cancel the invitation for ${userName}? Their current status is: ${statusText}.`;
+            
+            modal.style.display = 'block';
+        };
+
+        document.getElementById('confirm-delete-btn').addEventListener('click', async function () {
+            if (!pendingDelete) return;
+            
+            const modal = document.getElementById('delete-invite-modal');
+            const confirmBtn = document.getElementById('confirm-delete-btn');
+            
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Cancelling...';
+            
+            try {
+                const response = await fetch(`/event/${eventId}/invites`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: pendingDelete.userId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`Successfully cancelled invitation for ${pendingDelete.userName}`);
+                    modal.style.display = 'none';
+                    loadInviteData();
+                } else {
+                    alert(data.message || 'Failed to cancel invitation');
+                }
+            } catch (error) {
+                console.error('Error cancelling invite:', error);
+                alert('An error occurred while cancelling the invitation');
+            } finally {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Yes';
+                pendingDelete = null;
+            }
+        });
+
+        document.getElementById('cancel-delete-btn').addEventListener('click', function () {
+            document.getElementById('delete-invite-modal').style.display = 'none';
+            pendingDelete = null;
+        });
+
         document.getElementById('invite-btn').addEventListener('click', async function () {
             const checkedFriends = Array.from(document.querySelectorAll('#friends-list input[type="checkbox"]:checked:not(:disabled)'))
                 .map(cb => parseInt(cb.value));
@@ -160,8 +223,6 @@
                 return;
             }
 
-            // Validate capacity
-            // Calculate: number of invited users (pending) + number of currently attending users (accepted) + new invites
             if (maxCapacity !== null) {
                 const attendingCount = eventInviteInfo.attending_count || 0;
                 const pendingCount = eventInviteInfo.pending_count || 0;
@@ -174,7 +235,6 @@
                 }
             }
 
-            // Disable button during request
             const inviteBtn = document.getElementById('invite-btn');
             inviteBtn.disabled = true;
             inviteBtn.textContent = 'Inviting...';
@@ -194,7 +254,6 @@
 
                 if (data.success) {
                     alert(`Successfully invited ${checkedFriends.length} friend(s)!`);
-                    // Reload the page to update the display
                     window.location.reload();
                 } else {
                     alert(data.message || 'Failed to send invites. Please try again.');
@@ -209,12 +268,10 @@
             }
         });
 
-        // Handle cancel button click
         document.getElementById('cancel-invites-btn').addEventListener('click', function () {
             document.getElementById('invites-section').style.display = 'none';
         });
 
-        // Expose loadInviteData function to be called from event-details.ejs
         window.loadInviteData = loadInviteData;
     })();
 </script>

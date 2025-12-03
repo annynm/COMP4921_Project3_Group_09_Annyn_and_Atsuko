@@ -3,6 +3,7 @@ const getEventDetailsSQL = require("../../sql/events/getEventDetails");
 const upsertRSVPSQL = require("../../sql/rsvp/upsertRSVP");
 const getEventInviteInfoSQL = require("../../sql/events/getEventInviteInfo");
 const createInviteSQL = require("../../sql/rsvp/createInvite");
+const deleteInviteSQL = require("../../sql/rsvp/deleteInvite");
 
 const eventDetailsLogic = async (req, res) => {
   try {
@@ -18,37 +19,32 @@ const eventDetailsLogic = async (req, res) => {
         .render("404", { title: "Event Not Found", user: req.session.user });
     }
 
-    // Convert Date objects to ISO 8601 strings for frontend
-    // PostgreSQL returns timestamps without timezone, so we need to treat them as UTC
     const convertToUTCISO = (dateValue) => {
       if (!dateValue) return null;
-      
+
       if (dateValue instanceof Date) {
-        // PostgreSQL's pg library converts timestamp without timezone to Date object
-        // The Date object represents the UTC time, so toISOString() should work correctly
         return dateValue.toISOString();
       }
-      
-      // If it's a string like "2025-12-02 17:00:00" (from PostgreSQL without timezone),
-      // treat it as UTC by appending 'Z'
+
       const str = String(dateValue);
       if (str.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)) {
-        // Format: "YYYY-MM-DD HH:mm:ss" - treat as UTC
-        return str.replace(' ', 'T') + 'Z';
+        return str.replace(" ", "T") + "Z";
       }
-      
-      // If it already has timezone info or is ISO format, parse it
-      if (str.includes('T') || str.includes('Z') || str.match(/[+-]\d{2}:\d{2}$/)) {
-        // Already in ISO format or has timezone
+
+      if (
+        str.includes("T") ||
+        str.includes("Z") ||
+        str.match(/[+-]\d{2}:\d{2}$/)
+      ) {
         const dateObj = new Date(str);
         if (!isNaN(dateObj.getTime())) {
           return dateObj.toISOString();
         }
       }
-      
+
       return null;
     };
-    
+
     if (event.start_datetime) {
       event.start_datetime = convertToUTCISO(event.start_datetime);
     }
@@ -90,8 +86,9 @@ const getEventInviteInfoLogic = async (req, res) => {
     const eventId = req.params.id;
     const userId = req.session.user.id;
 
-    // Check if user has permission (owner or admin)
-    const eventDetailsResult = await pool.query(getEventDetailsSQL(eventId, userId));
+    const eventDetailsResult = await pool.query(
+      getEventDetailsSQL(eventId, userId),
+    );
     const event = eventDetailsResult.rows[0];
 
     if (!event) {
@@ -108,7 +105,6 @@ const getEventInviteInfoLogic = async (req, res) => {
       });
     }
 
-    // Get invite info
     const inviteInfoResult = await pool.query(getEventInviteInfoSQL(eventId));
     const inviteInfo = inviteInfoResult.rows[0];
 
@@ -119,10 +115,9 @@ const getEventInviteInfoLogic = async (req, res) => {
       });
     }
 
-    // Parse invited_users JSON if it's a string
     let invitedUsers = [];
     if (inviteInfo.invited_users) {
-      if (typeof inviteInfo.invited_users === 'string') {
+      if (typeof inviteInfo.invited_users === "string") {
         invitedUsers = JSON.parse(inviteInfo.invited_users);
       } else {
         invitedUsers = inviteInfo.invited_users;
@@ -164,8 +159,9 @@ const createInvitesLogic = async (req, res) => {
       });
     }
 
-    // Check if user has permission (owner or admin)
-    const eventDetailsResult = await pool.query(getEventDetailsSQL(eventId, userId));
+    const eventDetailsResult = await pool.query(
+      getEventDetailsSQL(eventId, userId),
+    );
     const event = eventDetailsResult.rows[0];
 
     if (!event) {
@@ -182,7 +178,6 @@ const createInvitesLogic = async (req, res) => {
       });
     }
 
-    // Get current invite info to check capacity
     const inviteInfoResult = await pool.query(getEventInviteInfoSQL(eventId));
     const inviteInfo = inviteInfoResult.rows[0];
 
@@ -193,8 +188,6 @@ const createInvitesLogic = async (req, res) => {
       });
     }
 
-    // Check capacity if max_capacity is set
-    // Calculate: number of invited users (pending) + number of currently attending users (accepted) + new invites
     if (inviteInfo.max_capacity !== null) {
       const attendingCount = parseInt(inviteInfo.attending_count) || 0;
       const pendingCount = parseInt(inviteInfo.pending_count) || 0;
@@ -209,15 +202,18 @@ const createInvitesLogic = async (req, res) => {
       }
     }
 
-    // Create invites
     const results = [];
     for (const invitedUserId of user_ids) {
       try {
-        const result = await pool.query(createInviteSQL(eventId, invitedUserId, userId));
+        const result = await pool.query(
+          createInviteSQL(eventId, invitedUserId, userId),
+        );
         results.push(result.rows[0]);
       } catch (error) {
-        console.error(`Error creating invite for user ${invitedUserId}:`, error);
-        // Continue with other invites even if one fails
+        console.error(
+          `Error creating invite for user ${invitedUserId}:`,
+          error,
+        );
       }
     }
 
@@ -235,4 +231,67 @@ const createInvitesLogic = async (req, res) => {
   }
 };
 
-module.exports = { eventDetailsLogic, updateRSVPLogic, getEventInviteInfoLogic, createInvitesLogic };
+const deleteInviteLogic = async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const userId = req.session.user.id;
+    const { user_id: invitedUserId } = req.body;
+
+    if (!invitedUserId) {
+      return res.status(400).json({
+        success: false,
+        message: "user_id is required",
+      });
+    }
+
+    const eventDetailsResult = await pool.query(
+      getEventDetailsSQL(eventId, userId),
+    );
+    const event = eventDetailsResult.rows[0];
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
+
+    if (!event.is_owner && !event.is_admin) {
+      return res.status(403).json({
+        success: false,
+        message: "You do not have permission to manage invites for this event",
+      });
+    }
+
+    const deleteResult = await pool.query(
+      deleteInviteSQL(eventId, invitedUserId),
+    );
+
+    if (deleteResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Invite not found or already accepted/declined",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Invite successfully cancelled",
+      deleted_invite: deleteResult.rows[0],
+    });
+  } catch (error) {
+    console.error("Delete invite error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to cancel invite",
+    });
+  }
+};
+
+module.exports = {
+  eventDetailsLogic,
+  updateRSVPLogic,
+  getEventInviteInfoLogic,
+  createInvitesLogic,
+  deleteInviteLogic,
+};

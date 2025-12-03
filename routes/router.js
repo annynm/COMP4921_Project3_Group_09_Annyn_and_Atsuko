@@ -11,7 +11,13 @@ const {
   registerPost,
 } = require("./logic/auth");
 const { eventsLogic } = require("./logic/events");
-const { eventDetailsLogic, updateRSVPLogic, getEventInviteInfoLogic, createInvitesLogic } = require("./logic/eventDetails");
+const {
+  eventDetailsLogic,
+  updateRSVPLogic,
+  getEventInviteInfoLogic,
+  createInvitesLogic,
+  deleteInviteLogic,
+} = require("./logic/eventDetails");
 const {
   bookEventGet,
   editEventGet,
@@ -33,7 +39,7 @@ const {
   getAcceptedFriends,
   acceptFriendship,
   declineFriendship,
-  cancelFriendship
+  cancelFriendship,
 } = require("./logic/friends");
 const { cleanupDeletedEvents } = require("./logic/cleanup");
 const getEventHistorySQL = require("../sql/events/getEventHistory");
@@ -55,7 +61,7 @@ router.get("/register", registerGet);
 router.post("/register", registerPost);
 
 // Development only: Manual cleanup endpoint
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === "development") {
   router.post("/admin/cleanup-deleted-events", cleanupDeletedEvents);
 }
 
@@ -71,6 +77,7 @@ router.get("/event/:id", eventDetailsLogic);
 router.post("/event/:id/rsvp", updateRSVPLogic);
 router.get("/event/:id/invites/info", getEventInviteInfoLogic);
 router.post("/event/:id/invites", createInvitesLogic);
+router.delete("/event/:id/invites", deleteInviteLogic);
 router.get("/events/book", bookEventGet);
 router.get("/event/:id/edit", editEventGet);
 router.post("/events/book", createEventPost);
@@ -86,8 +93,6 @@ router.get("/events/history", async (req, res) => {
   try {
     const result = await pool.query(getEventHistorySQL(req.session.user.id));
 
-    // Convert Date objects to ISO 8601 strings for frontend
-    // PostgreSQL returns timestamps with time zone (after AT TIME ZONE 'UTC'), so we can use it directly
     const convertToUTCISO = (dateValue) => {
       if (!dateValue) return null;
 
@@ -97,10 +102,14 @@ router.get("/events/history", async (req, res) => {
 
       const str = String(dateValue);
       if (str.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)) {
-        return str.replace(' ', 'T') + 'Z';
+        return str.replace(" ", "T") + "Z";
       }
 
-      if (str.includes('T') || str.includes('Z') || str.match(/[+-]\d{2}:\d{2}$/)) {
+      if (
+        str.includes("T") ||
+        str.includes("Z") ||
+        str.match(/[+-]\d{2}:\d{2}$/)
+      ) {
         const dateObj = new Date(str);
         if (!isNaN(dateObj.getTime())) {
           return dateObj.toISOString();
@@ -110,7 +119,7 @@ router.get("/events/history", async (req, res) => {
       return null;
     };
 
-    const events = result.rows.map(event => {
+    const events = result.rows.map((event) => {
       if (event.start_datetime) {
         event.start_datetime = convertToUTCISO(event.start_datetime);
       }
@@ -141,8 +150,6 @@ router.get("/events/deleted", async (req, res) => {
     const getDeletedEventsSQL = require("../sql/events/getDeletedEvents");
     const result = await pool.query(getDeletedEventsSQL(req.session.user.id));
 
-    // Convert Date objects to ISO 8601 strings for frontend
-    // PostgreSQL returns timestamps with time zone (after AT TIME ZONE 'UTC'), so we can use it directly
     const convertToUTCISO = (dateValue) => {
       if (!dateValue) return null;
 
@@ -152,10 +159,14 @@ router.get("/events/deleted", async (req, res) => {
 
       const str = String(dateValue);
       if (str.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)) {
-        return str.replace(' ', 'T') + 'Z';
+        return str.replace(" ", "T") + "Z";
       }
 
-      if (str.includes('T') || str.includes('Z') || str.match(/[+-]\d{2}:\d{2}$/)) {
+      if (
+        str.includes("T") ||
+        str.includes("Z") ||
+        str.match(/[+-]\d{2}:\d{2}$/)
+      ) {
         const dateObj = new Date(str);
         if (!isNaN(dateObj.getTime())) {
           return dateObj.toISOString();
@@ -165,7 +176,7 @@ router.get("/events/deleted", async (req, res) => {
       return null;
     };
 
-    const events = result.rows.map(event => {
+    const events = result.rows.map((event) => {
       if (event.start_datetime) {
         event.start_datetime = convertToUTCISO(event.start_datetime);
       }
@@ -175,7 +186,6 @@ router.get("/events/deleted", async (req, res) => {
       return event;
     });
 
-    // deleted_at_vancouver is already formatted in SQL query
     res.render("deleted-events", {
       title: "Deleted Events",
       user: req.session.user,

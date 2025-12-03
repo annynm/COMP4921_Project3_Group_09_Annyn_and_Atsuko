@@ -17,7 +17,7 @@ const checkUsername = async (req, res) => {
             return res.json({ exists: false, message: "" });
         }
 
-        // 自分自身のusernameは除外
+        // Exclude own username
         if (username === req.session.user.username) {
             return res.json({ exists: false, message: "Cannot send request to yourself" });
         }

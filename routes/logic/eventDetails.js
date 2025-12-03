@@ -194,7 +194,7 @@ const createInvitesLogic = async (req, res) => {
     }
 
     // Check capacity if max_capacity is set
-    // Calculate: inviteされている人数(pending) + 現在attendingになっている人数(accepted) + 新しい招待
+    // Calculate: number of invited users (pending) + number of currently attending users (accepted) + new invites
     if (inviteInfo.max_capacity !== null) {
       const attendingCount = parseInt(inviteInfo.attending_count) || 0;
       const pendingCount = parseInt(inviteInfo.pending_count) || 0;

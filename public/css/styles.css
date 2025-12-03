@@ -137,7 +137,7 @@ nav {
 }
 
 .cta-button {
-  display: inline-block;
+  display: block;
   background: var(--greendale-blue);
   color: var(--white);
   padding: 1rem 2rem;
@@ -148,6 +148,8 @@ nav {
   transition: all 0.3s ease;
   border: none;
   cursor: pointer;
+  margin: 0 auto;
+  width: fit-content;
 }
 
 .cta-button:hover {

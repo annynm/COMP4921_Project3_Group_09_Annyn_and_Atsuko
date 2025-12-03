@@ -61,7 +61,8 @@
 
                                 <div class="form-group">
                                     <label for="recurring_type">Recurring</label>
-                                    <select id="recurring_type" name="recurring_type">
+                                    <select id="recurring_type" name="recurring_type" <%=isEditMode ? 'disabled' : ''
+                                        %>>
                                         <option value="none" <%=formData.recurring_type==='none' ||
                                             !formData.recurring_type ? 'selected' : '' %>>Does not repeat</option>
                                         <option value="daily" <%=formData.recurring_type==='daily' ? 'selected' : '' %>
@@ -71,12 +72,19 @@
                                         <option value="monthly" <%=formData.recurring_type==='monthly' ? 'selected' : ''
                                             %>>Monthly on the day</option>
                                     </select>
+                                    <% if (isEditMode) { %>
+                                        <p
+                                            style="font-size: 0.875rem; color: #666; margin-top: 0.5rem; font-style: italic;">
+                                            Recurring settings cannot be changed after event creation.
+                                        </p>
+                                        <% } %>
                                 </div>
 
                                 <div class="form-group" id="recurring_end_date_group" style="display: none;">
                                     <label for="recurring_end_date">Recurring ends on (inclusive)</label>
                                     <input type="date" id="recurring_end_date" name="recurring_end_date"
-                                        value="<%= formData.recurring_end_date || '' %>">
+                                        value="<%= formData.recurring_end_date || '' %>" <%=isEditMode ? 'disabled' : ''
+                                        %>>
                                 </div>
 
                                 <div class="form-group">
@@ -267,6 +275,7 @@
                 const recurringTypeSelect = document.getElementById('recurring_type');
                 const recurringEndDateGroup = document.getElementById('recurring_end_date_group');
                 const recurringEndDateInput = document.getElementById('recurring_end_date');
+                const isEditMode = <%= isEditMode ? 'true' : 'false' %>;
 
                 // Function to toggle recurring end date field visibility
                 function toggleRecurringEndDate() {
@@ -280,11 +289,16 @@
                     }
                 }
 
-                // Initialize on page load
-                toggleRecurringEndDate();
+                // Initialize on page load (only if not in edit mode)
+                if (!isEditMode) {
+                    toggleRecurringEndDate();
 
-                // Listen for changes
-                recurringTypeSelect.addEventListener('change', toggleRecurringEndDate);
+                    // Listen for changes (only if not in edit mode)
+                    recurringTypeSelect.addEventListener('change', toggleRecurringEndDate);
+                } else {
+                    // In edit mode, keep recurring end date group hidden
+                    recurringEndDateGroup.style.display = 'none';
+                }
 
                 // Validate recurring end date when it's selected
                 recurringEndDateInput.addEventListener('change', function () {
@@ -326,14 +340,16 @@
                         return false;
                     }
 
-                    // Validate recurring end date if recurring is selected
-                    const recurringType = recurringTypeSelect.value;
-                    if (recurringType !== 'none') {
-                        const recurringEndDate = recurringEndDateInput.value;
-                        if (!recurringEndDate) {
-                            e.preventDefault();
-                            alert('Please select a recurring end date');
-                            return false;
+                    // Validate recurring end date if recurring is selected (only in create mode)
+                    if (!isEditMode) {
+                        const recurringType = recurringTypeSelect.value;
+                        if (recurringType !== 'none') {
+                            const recurringEndDate = recurringEndDateInput.value;
+                            if (!recurringEndDate) {
+                                e.preventDefault();
+                                alert('Please select a recurring end date');
+                                return false;
+                            }
                         }
                     }
                 });

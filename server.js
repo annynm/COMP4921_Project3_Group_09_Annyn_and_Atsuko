@@ -1,4 +1,3 @@
-// server.js
 require("dotenv").config();
 const express = require("express");
 const path = require("path");
@@ -7,13 +6,13 @@ const { pool } = require("./config/database");
 const { store } = require("./config/session");
 const router = require("./routes/router");
 
-// Initialize scheduled jobs
 require("./jobs/cleanupDeletedEvents");
 
 const app = express();
 const PORT = process.env.PORT || 3004;
 
-// --- Middleware ---
+app.set("trust proxy", 1);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
@@ -23,22 +22,23 @@ app.use(
     store: store,
     resave: false,
     saveUninitialized: false,
+    proxy: true,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure:
+        process.env.NODE_ENV === "production" &&
+        process.env.FORCE_HTTPS !== "false",
       httpOnly: true,
-      maxAge: 3 * 60 * 60 * 1000, // 3 hours
+      maxAge: 3 * 60 * 60 * 1000,
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     },
   }),
 );
 
-// --- View Engine ---
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-// --- Routes ---
 app.use("/", router);
 
-// --- 404 Handler ---
 app.use((req, res) => {
   res.status(404).render("404", {
     title: "404 - Page Not Found",
@@ -46,7 +46,6 @@ app.use((req, res) => {
   });
 });
 
-// --- Global Error Handler ---
 app.use((err, req, res, next) => {
   console.error("\n=== SERVER ERROR ===");
   console.error("Time:", new Date().toISOString());
@@ -77,13 +76,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-// --- Start Server ---
 async function startServer() {
   try {
     console.log("🔄 Starting Greendale Community College App...");
     console.log("🔗 Connecting to PostgreSQL (NeonDB)...");
 
-    // Quick retry (2 attempts)
     let pgConnected = false;
     const maxAttempts = 2;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -98,7 +95,7 @@ async function startServer() {
           `   PostgreSQL attempt ${attempt}/${maxAttempts} failed: ${pgError.message}`,
         );
         if (attempt < maxAttempts) {
-          const delay = attempt * 500; // 0.5s, 1s
+          const delay = attempt * 500;
           console.log(`   Retrying in ${delay}ms...`);
           await new Promise((resolve) => setTimeout(resolve, delay));
         }
@@ -131,7 +128,6 @@ async function startServer() {
   }
 }
 
-// --- Graceful Shutdown ---
 process.on("SIGINT", () => {
   console.log("\n🛑 Shutting down gracefully...");
   pool.end().then(() => {

@@ -1,4 +1,3 @@
-// config/session.js
 const session = require("express-session");
 const MongoDBStoreFactory = require("connect-mongodb-session");
 const encode = encodeURIComponent;
@@ -6,7 +5,6 @@ const encode = encodeURIComponent;
 let store;
 const MongoDBStore = MongoDBStoreFactory(session);
 
-// Helper to safely build MongoDB URI
 function buildMongoUri() {
   const user = process.env.MONGODB_USER || "";
   const pass = process.env.MONGODB_PASSWORD || "";
@@ -29,9 +27,9 @@ try {
     uri,
     databaseName: "GreendaleCalendar",
     collection: process.env.MONGODB_SESSION_TABLE || "sessions",
-    expires: 1000 * 60 * 60 * 3, // 3 hours
+    expires: 1000 * 60 * 60 * 3,
     connectionOptions: {
-      serverSelectionTimeoutMS: 5000, // Faster failure
+      serverSelectionTimeoutMS: 5000,
       connectTimeoutMS: 5000,
       socketTimeoutMS: 45000,
       maxIdleTimeMS: 600000,

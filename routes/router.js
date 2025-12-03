@@ -11,7 +11,7 @@ const {
   registerPost,
 } = require("./logic/auth");
 const { eventsLogic } = require("./logic/events");
-const { eventDetailsLogic, updateRSVPLogic } = require("./logic/eventDetails");
+const { eventDetailsLogic, updateRSVPLogic, getEventInviteInfoLogic, createInvitesLogic } = require("./logic/eventDetails");
 const {
   bookEventGet,
   editEventGet,
@@ -69,6 +69,8 @@ router.use((req, res, next) => {
 router.get("/events", eventsLogic);
 router.get("/event/:id", eventDetailsLogic);
 router.post("/event/:id/rsvp", updateRSVPLogic);
+router.get("/event/:id/invites/info", getEventInviteInfoLogic);
+router.post("/event/:id/invites", createInvitesLogic);
 router.get("/events/book", bookEventGet);
 router.get("/event/:id/edit", editEventGet);
 router.post("/events/book", createEventPost);

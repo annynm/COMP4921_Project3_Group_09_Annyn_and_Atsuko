@@ -55,7 +55,7 @@
                 <div class="event-actions">
                     <% if (event.is_owner || event.is_admin) { %>
                         <a href="/event/<%= event.event_id %>/edit" class="btn btn-primary">Edit Event</a>
-                        <a href="/event/<%= event.event_id %>/invite" class="btn btn-secondary">Manage Invites</a>
+                        <button type="button" id="manage-invites-btn" class="btn btn-secondary">Manage Invites</button>
                         <form action="/event/<%= event.event_id %>/delete" method="POST" style="display: inline;"
                             onsubmit="return confirm('Are you sure you want to delete this event?');">
                             <button type="submit" class="btn btn-danger">Delete Event</button>
@@ -74,6 +74,11 @@
                             </form>
                 </div>
             </div>
+
+            <!-- Invites section -->
+            <% if (event.is_owner || event.is_admin) { %>
+                <%- include('partials/invites', { event: event }) %>
+                    <% } %>
         </div>
 
         <!-- Day.js from CDN -->
@@ -87,36 +92,36 @@
                     setTimeout(convertEventTimes, 100);
                     return;
                 }
-                
+
                 dayjs.extend(dayjs_plugin_utc);
                 dayjs.extend(dayjs_plugin_timezone);
-                
+
                 const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                
+
                 // Helper function to normalize UTC string to ISO format
                 // Server now sends ISO strings, this is mainly for safety
                 function normalizeUTCString(utcStr) {
                     if (!utcStr) return null;
-                    
+
                     // If it's already a Date object, convert to ISO
                     if (utcStr instanceof Date) {
                         return utcStr.toISOString();
                     }
-                    
+
                     // Convert to string
                     let str = String(utcStr).trim();
-                    
+
                     // If it's already in ISO format with Z, return as-is
                     if (str.endsWith('Z') && str.includes('T')) {
                         return str;
                     }
-                    
+
                     // Try to parse as Date (handles ISO strings without Z, and other formats)
                     const dateObj = new Date(str);
                     if (!isNaN(dateObj.getTime())) {
                         return dateObj.toISOString();
                     }
-                    
+
                     // Fallback: try to fix common formats
                     str = str.replace(' ', 'T');
                     str = str.replace(/\.\d{3}$/, '');
@@ -126,38 +131,38 @@
                     if (!str.endsWith('Z')) {
                         str = str + 'Z';
                     }
-                    
+
                     return str;
                 }
-                
+
                 const startUTC = '<%= event.start_datetime %>';
                 const endUTC = '<%= event.end_datetime %>';
-                
+
                 if (startUTC && endUTC) {
                     try {
                         const normalizedStart = normalizeUTCString(startUTC);
                         const normalizedEnd = normalizeUTCString(endUTC);
-                        
+
                         if (!normalizedStart || !normalizedEnd) {
                             console.error('Failed to normalize UTC values:', startUTC, endUTC);
                             return;
                         }
-                        
+
                         const startLocal = dayjs.utc(normalizedStart).tz(userTimezone);
                         const endLocal = dayjs.utc(normalizedEnd).tz(userTimezone);
-                        
+
                         if (!startLocal.isValid() || !endLocal.isValid()) {
                             console.error('Invalid dates after conversion:', normalizedStart, normalizedEnd);
                             return;
                         }
-                        
+
                         // Format date
                         const dateStr = startLocal.format('MMMM D, YYYY');
                         const dateEl = document.getElementById('event-date');
                         if (dateEl) {
                             dateEl.textContent = dateStr;
                         }
-                        
+
                         // Format time
                         const timeStr = startLocal.format('h:mm A') + ' - ' + endLocal.format('h:mm A');
                         const timeEl = document.getElementById('event-time');
@@ -169,13 +174,35 @@
                     }
                 }
             }
-            
+
             // Wait for DOM and Day.js to be ready
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', convertEventTimes);
             } else {
                 convertEventTimes();
             }
+        </script>
+
+        <script>
+            // Handle Manage Invites button click
+            document.addEventListener('DOMContentLoaded', function () {
+                const manageInvitesBtn = document.getElementById('manage-invites-btn');
+                const invitesSection = document.getElementById('invites-section');
+
+                if (manageInvitesBtn && invitesSection) {
+                    manageInvitesBtn.addEventListener('click', function () {
+                        if (invitesSection.style.display === 'none' || !invitesSection.style.display) {
+                            invitesSection.style.display = 'block';
+                            // Load invite data when section is shown
+                            if (typeof window.loadInviteData === 'function') {
+                                window.loadInviteData();
+                            }
+                        } else {
+                            invitesSection.style.display = 'none';
+                        }
+                    });
+                }
+            });
         </script>
 
         <%- include('partials/footer') %>

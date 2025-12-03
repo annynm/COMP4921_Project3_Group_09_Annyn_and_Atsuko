@@ -10,6 +10,11 @@ module.exports = (userId, limit = 20) => ({
             WHERE (requestor_id = $1 OR receiver_id = $1) 
             AND status = 'accepted'
         ),
+        user_invited_events AS (
+            SELECT DISTINCT event_id
+            FROM rsvp
+            WHERE user_id = $1
+        ),
         visible_events AS (
             SELECT 
                 e.event_id,
@@ -33,6 +38,9 @@ module.exports = (userId, limit = 20) => ({
                 OR e.owner_id = $1
                 OR (e.privacy_type = 'friends_only' AND EXISTS (
                     SELECT 1 FROM user_friends uf WHERE uf.friend_id = e.owner_id
+                ))
+                OR (e.privacy_type = 'invite_only' AND EXISTS (
+                    SELECT 1 FROM user_invited_events uie WHERE uie.event_id = e.event_id
                 ))
             )
             GROUP BY e.event_id, e.event_name, e.event_description, e.start_datetime, e.end_datetime, e.privacy_type, e.max_capacity, e.owner_id, r.room_name
@@ -83,7 +91,7 @@ module.exports = (userId, limit = 20) => ({
                 END as has_time_conflict
             FROM visible_events ve
             LEFT JOIN user_rsvp_status urs ON ve.event_id = urs.event_id
-            WHERE urs.status IS NULL OR urs.status != 'accepted'
+            WHERE urs.status IS NULL OR urs.status = 'pending'
         )
         SELECT * FROM events_with_conflicts
         ORDER BY start_datetime ASC

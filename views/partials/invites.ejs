@@ -1,0 +1,220 @@
+<div id="invites-section" class="glass-card" style="margin-top: 2rem; display: none;">
+    <h2 style="color: var(--greendale-blue-dark); margin-bottom: 1rem;">Invite your friend</h2>
+
+    <div id="invites-loading" style="text-align: center; padding: 2rem;">
+        <p>Loading friends...</p>
+    </div>
+
+    <div id="invites-content" style="display: none;">
+        <div id="invites-error" style="color: var(--error); margin-bottom: 1rem; display: none;"></div>
+
+        <div id="friends-list" style="margin-bottom: 1.5rem;">
+            <!-- Friends will be loaded here -->
+        </div>
+
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <button id="invite-btn" class="btn btn-primary" style="min-width: 120px;">Invite</button>
+            <button id="cancel-invites-btn" class="btn btn-secondary">Cancel</button>
+        </div>
+    </div>
+
+    <div id="no-friends-message"
+        style="display: none; text-align: center; padding: 2rem; color: var(--text-secondary);">
+        <p>You don't have any friends to invite yet.</p>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const eventId = '<%= event.event_id %>';
+        <% if (event.max_capacity !== null && event.max_capacity !== undefined) { %>
+        const maxCapacity = <%= event.max_capacity %>;
+        <% } else { %>
+        const maxCapacity = null;
+        <% } %>
+            let friends = [];
+        let eventInviteInfo = null;
+
+        // Load friends and event invite info
+        async function loadInviteData() {
+            const invitesSection = document.getElementById('invites-section');
+            const loadingDiv = document.getElementById('invites-loading');
+            const contentDiv = document.getElementById('invites-content');
+            const noFriendsDiv = document.getElementById('no-friends-message');
+
+            try {
+                // Load friends
+                const friendsResponse = await fetch('/friends/accepted');
+                if (!friendsResponse.ok) {
+                    throw new Error(`Failed to load friends: ${friendsResponse.status} ${friendsResponse.statusText}`);
+                }
+                const friendsData = await friendsResponse.json();
+
+                if (friendsData.success && friendsData.friends.length > 0) {
+                    friends = friendsData.friends;
+
+                    // Load event invite info
+                    const infoResponse = await fetch(`/event/${eventId}/invites/info`);
+                    if (!infoResponse.ok) {
+                        throw new Error(`Failed to load event invite info: ${infoResponse.status} ${infoResponse.statusText}`);
+                    }
+
+                    // Check if response is JSON
+                    const contentType = infoResponse.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        const text = await infoResponse.text();
+                        throw new Error('Server returned non-JSON response. The endpoint may not be implemented yet.');
+                    }
+
+                    const infoData = await infoResponse.json();
+
+                    if (infoData.success) {
+                        eventInviteInfo = infoData;
+                        renderFriendsList();
+                        loadingDiv.style.display = 'none';
+                        contentDiv.style.display = 'block';
+                    } else {
+                        throw new Error(infoData.message || 'Failed to load event invite info');
+                    }
+                } else {
+                    loadingDiv.style.display = 'none';
+                    noFriendsDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading invite data:', error);
+                loadingDiv.innerHTML = `<p style="color: var(--error);">Error loading data: ${error.message}</p>`;
+            }
+        }
+
+        function renderFriendsList() {
+            const friendsListDiv = document.getElementById('friends-list');
+
+            if (!eventInviteInfo) {
+                friendsListDiv.innerHTML = '<p>Loading...</p>';
+                return;
+            }
+
+            // Get already invited user IDs (only pending or accepted, not declined)
+            // declined users can be re-invited
+            const invitedUserMap = new Map();
+            (eventInviteInfo.invited_users || []).forEach(u => {
+                if (u.status === 'pending' || u.status === 'accepted') {
+                    invitedUserMap.set(u.user_id, u.status);
+                }
+            });
+
+            const friendsHtml = friends.map(friend => {
+                const inviteStatus = invitedUserMap.get(friend.user_id);
+                const isInvited = inviteStatus !== undefined;
+                const disabledAttr = isInvited ? 'disabled' : '';
+                const checkedAttr = isInvited ? 'checked' : '';
+
+                let statusText = '';
+                if (isInvited) {
+                    if (inviteStatus === 'pending') {
+                        statusText = '<span style="margin-left: 1rem; color: var(--text-secondary); font-size: 0.9em;">(Already invited)</span>';
+                    } else if (inviteStatus === 'accepted') {
+                        statusText = '<span style="margin-left: 1rem; color: var(--text-secondary); font-size: 0.9em;">(Already attending)</span>';
+                    }
+                }
+
+                return `
+                    <div style="display: flex; align-items: center; padding: 0.75rem; margin-bottom: 0.5rem; background: rgba(255, 255, 255, 0.1); border-radius: 8px;">
+                        <input 
+                            type="checkbox" 
+                            id="friend-${friend.user_id}" 
+                            value="${friend.user_id}" 
+                            ${disabledAttr}
+                            ${checkedAttr}
+                            style="margin-right: 1rem; width: 20px; height: 20px; cursor: pointer;"
+                        >
+                        <label 
+                            for="friend-${friend.user_id}" 
+                            style="flex: 1; cursor: pointer; display: flex; align-items: center;"
+                        >
+                            <span style="font-weight: 500;">
+                                ${escapeHtml(friend.fname)} ${escapeHtml(friend.lname)}
+                            </span>
+                            ${statusText}
+                        </label>
+                    </div>
+                `;
+            }).join('');
+
+            friendsListDiv.innerHTML = friendsHtml || '<p style="color: var(--text-secondary);">No friends available</p>';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Handle invite button click
+        document.getElementById('invite-btn').addEventListener('click', async function () {
+            const checkedFriends = Array.from(document.querySelectorAll('#friends-list input[type="checkbox"]:checked:not(:disabled)'))
+                .map(cb => parseInt(cb.value));
+
+            if (checkedFriends.length === 0) {
+                alert('Please select at least one friend to invite.');
+                return;
+            }
+
+            // Validate capacity
+            // Calculate: inviteされている人数(pending) + 現在attendingになっている人数(accepted) + 新しい招待
+            if (maxCapacity !== null) {
+                const attendingCount = eventInviteInfo.attending_count || 0;
+                const pendingCount = eventInviteInfo.pending_count || 0;
+                const newInvitesCount = checkedFriends.length;
+                const totalAfterInvite = attendingCount + pendingCount + newInvitesCount;
+
+                if (totalAfterInvite > maxCapacity) {
+                    alert(`Cannot invite ${newInvitesCount} friend(s). The total number of invites (${pendingCount} pending + ${attendingCount} attending) plus new invites (${newInvitesCount}) would exceed the maximum capacity of ${maxCapacity}.`);
+                    return;
+                }
+            }
+
+            // Disable button during request
+            const inviteBtn = document.getElementById('invite-btn');
+            inviteBtn.disabled = true;
+            inviteBtn.textContent = 'Inviting...';
+
+            try {
+                const response = await fetch(`/event/${eventId}/invites`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_ids: checkedFriends
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`Successfully invited ${checkedFriends.length} friend(s)!`);
+                    // Reload the page to update the display
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Failed to send invites. Please try again.');
+                    inviteBtn.disabled = false;
+                    inviteBtn.textContent = 'Invite';
+                }
+            } catch (error) {
+                console.error('Error sending invites:', error);
+                alert('An error occurred while sending invites. Please try again.');
+                inviteBtn.disabled = false;
+                inviteBtn.textContent = 'Invite';
+            }
+        });
+
+        // Handle cancel button click
+        document.getElementById('cancel-invites-btn').addEventListener('click', function () {
+            document.getElementById('invites-section').style.display = 'none';
+        });
+
+        // Expose loadInviteData function to be called from event-details.ejs
+        window.loadInviteData = loadInviteData;
+    })();
+</script>
